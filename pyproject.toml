@@ -1,0 +1,35 @@
+[project]
+name = "awesometrader"
+version = "0.1.0"
+description = "A comprehensive trading system with data collection, backtesting, and strategy implementation"
+authors = [
+    {name = "AwesomeTrader Team", email = "team@awesometrader.com"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+keywords = ["trading", "finance", "data", "backtesting", "stocks"]
+
+dependencies = [
+    "pandas",
+    "numpy",
+    "ta-lib",
+    "requests",
+    "humanize",
+    "loguru",
+    "schedule",  # 定时任务
+    "python-dotenv",  # 环境变量文件支持
+    "pyarrow",  # for parquet support
+    "longport", # 长桥openapi
+    "backtesting" # 回测框架
+]
