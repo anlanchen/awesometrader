@@ -77,6 +77,81 @@ class DataCollectorMain:
             logger.error(f"加载股票池失败: {e}")
             return []
 
+    def sync_watchlist_to_stock_pool(self):
+        """同步自选股到股票池文件"""
+        logger.info("=" * 50)
+        logger.info("开始同步自选股到股票池")
+        logger.info("=" * 50)
+        
+        try:
+            # 获取自选股列表
+            logger.info("正在获取自选股列表...")
+            watchlist_securities = self.collector.get_stock_list()
+            
+            if not watchlist_securities:
+                logger.warning("未获取到自选股，同步停止")
+                return False
+            
+            # 提取股票代码
+            stock_codes = [security.symbol for security in watchlist_securities]
+            
+            logger.info(f"获取到 {len(stock_codes)} 只自选股: {stock_codes}")
+            
+            # 读取现有股票池（如果存在）
+            existing_stock_codes = []
+            stock_pool_path = self.data_interface.cache_dir / self.stock_pool_file
+            
+            if stock_pool_path.exists():
+                try:
+                    existing_stock_codes = self.data_interface.load_stock_pool(self.stock_pool_file)
+                    logger.info(f"现有股票池包含 {len(existing_stock_codes)} 只股票: {existing_stock_codes}")
+                except Exception as e:
+                    logger.warning(f"读取现有股票池失败: {e}")
+            
+            # 比较变化
+            existing_set = set(existing_stock_codes)
+            new_set = set(stock_codes)
+            
+            added_stocks = new_set - existing_set
+            removed_stocks = existing_set - new_set
+            unchanged_stocks = existing_set & new_set
+            
+            logger.info("股票池变化分析:")
+            logger.info(f"  新增股票: {len(added_stocks)} 只 - {list(added_stocks) if added_stocks else '无'}")
+            logger.info(f"  移除股票: {len(removed_stocks)} 只 - {list(removed_stocks) if removed_stocks else '无'}")
+            logger.info(f"  保持不变: {len(unchanged_stocks)} 只")
+            
+            # 写入新的股票池文件
+            try:
+                import csv
+                
+                with open(stock_pool_path, 'w', newline='', encoding='utf-8') as csvfile:
+                    writer = csv.writer(csvfile)
+                    # 写入表头
+                    writer.writerow(['stock_code', 'stock_name'])
+                    # 写入股票代码和名称
+                    for security in watchlist_securities:
+                        writer.writerow([security.symbol, security.name])
+                
+                logger.success(f"股票池文件更新成功: {stock_pool_path}")
+                logger.info(f"股票池现包含 {len(stock_codes)} 只股票")
+                
+                # 显示详细的股票信息
+                logger.info("股票池详细信息:")
+                for i, security in enumerate(watchlist_securities, 1):
+                    watched_price_info = f"关注价格: {security.watched_price}" if security.watched_price else "关注价格: 未设置"
+                    logger.info(f"  {i}. {security.symbol} ({security.name}) - 市场: {security.market} - {watched_price_info}")
+                
+                return True
+                
+            except Exception as e:
+                logger.error(f"写入股票池文件失败: {e}")
+                return False
+            
+        except Exception as e:
+            logger.error(f"同步自选股到股票池失败: {e}")
+            return False
+
     def get_market_from_stock_code(self, stock_code: str) -> str:
         """从股票代码获取市场信息"""
         if '.' in stock_code:
@@ -177,7 +252,7 @@ class DataCollectorMain:
             logger.warning(f"失败的股票: {failed_stocks}")
         logger.info("=" * 50)
 
-    def update_latest_data_by_market(self, market: str = "ALL", period: Period = Period.Day, adjust_type: AdjustType = AdjustType.ForwardAdjust, count: int = 100):
+    def update_latest_data_by_market(self, market: str = "ALL", period: Period = Period.Day, adjust_type: AdjustType = AdjustType.ForwardAdjust, count: int = 1000):
         """
         根据市场更新最新数据
         :param market: 市场代码 (US, HK, CN, SG, ALL) - ALL代表所有市场
@@ -361,7 +436,8 @@ class DataCollectorMain:
         logger.info(f"执行 {market} 市场定时更新任务")
         try:
             # 根据市场更新对应股票
-            self.update_latest_data_by_market(market)
+            for period in [Period.Day, Period.Week, Period.Month, Period.Quarter, Period.Year]:
+                self.update_latest_data_by_market(market=market, period=period)
             logger.success(f"{market} 市场定时更新任务完成")
         except Exception as e:
             logger.error(f"{market} 市场定时更新任务失败: {e}")
@@ -388,29 +464,45 @@ class DataCollectorMain:
             print("=" * 50)
             print("1. 收集历史数据")
             print("2. 更新最新数据")
-            print("3. 查看交易时段")
-            print("4. 启动定时更新")
-            print("5. 退出")
+            print("3. 同步自选股到股票池")
+            print("4. 查看交易时段")
+            print("5. 启动定时更新")
+            print("6. 退出")
             print("-" * 50)
             
             try:
-                choice = input("请选择操作 (1-5): ").strip()
+                choice = input("请选择操作 (1-6): ").strip()
                 
                 if choice == '1':
                     logger.info("用户选择：收集历史数据")
-                    self.collect_historical_data()
+                    for period in [Period.Day, Period.Week, Period.Month, Period.Quarter, Period.Year]:
+                        self.collect_historical_data(period=period)
                 elif choice == '2':
                     logger.info("用户选择：更新最新数据")
-                    self.update_latest_data_by_market("ALL")
+                    for period in [Period.Day, Period.Week, Period.Month, Period.Quarter, Period.Year]:
+                        self.update_latest_data_by_market(market="ALL", period=period)
                 elif choice == '3':
+                    logger.info("用户选择：同步自选股到股票池")
+                    success = self.sync_watchlist_to_stock_pool()
+                    if success:
+                        print("✓ 自选股同步完成")
+                        # 询问是否立即收集历史数据
+                        collect_now = input("是否立即为新的股票池收集历史数据？(y/n): ").strip().lower()
+                        if collect_now in ['y', 'yes', '是']:
+                            logger.info("开始为新股票池收集历史数据...")
+                            for period in [Period.Day, Period.Week, Period.Month, Period.Quarter, Period.Year]:
+                                self.collect_historical_data(period=period)
+                    else:
+                        print("✗ 自选股同步失败")
+                elif choice == '4':
                     logger.info("用户选择：查看交易时段")
                     self.collector.get_trading_session()
-                elif choice == '4':
+                elif choice == '5':
                     logger.info("用户选择：启动定时更新")
                     self.setup_daily_trading_session_update()
                     self.daily_setup_market_updates()
                     self.run_scheduler()
-                elif choice == '5':
+                elif choice == '6':
                     logger.info("用户选择：退出程序")
                     break
                 else:

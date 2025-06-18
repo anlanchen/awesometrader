@@ -36,7 +36,7 @@ class TestDataModule(unittest.TestCase):
         logger.info(f"✓ DataInterface初始化成功，缓存目录: {self.data_interface.cache_dir}")
         
         # 定义统一的测试股票代码
-        test_stock_code = "AAPL.US"
+        test_stock_code = "BABA.US"
         
         # 测试get_stock_data_path方法
         # 测试CSV格式路径
@@ -67,7 +67,7 @@ class TestDataModule(unittest.TestCase):
             for stock in test_stocks:
                 self.assertIsInstance(stock, str, f"股票代码{stock}应该是字符串类型")
                 self.assertTrue(len(stock) > 0, f"股票代码{stock}不应该为空")
-                # 验证股票代码格式 (包含.的格式如AAPL.US)
+                # 验证股票代码格式 (包含.的格式如BABA.US)
                 if '.' in stock:
                     symbol, market = stock.split('.', 1)  # 只分割第一个点
                     self.assertTrue(len(symbol) > 0, f"股票符号{symbol}不应该为空")
@@ -76,11 +76,11 @@ class TestDataModule(unittest.TestCase):
         else:
             logger.warning("股票池为空，可能是stock_pool.csv文件不存在或为空")
         
-        # 测试save_stock_data方法 - 获取AAPL真实数据并保存
+        # 测试save_stock_data方法 - 获取BABA真实数据并保存
         try:
             logger.info(f"开始获取{test_stock_code}的日线数据进行保存测试")
             
-            # 获取AAPL最近30天的日线数据
+            # 获取BABA最近30天的日线数据
             start_date = datetime(2024, 1, 1)
             end_date = datetime(2024, 12, 30)
             
@@ -106,14 +106,14 @@ class TestDataModule(unittest.TestCase):
                     file_format='csv',
                     force_update=True
                 )
-                self.assertTrue(success, "保存AAPL股票数据应该成功")
-                logger.info("✓ AAPL股票数据保存功能正常")
+                self.assertTrue(success, "保存BABA股票数据应该成功")
+                logger.info("✓ BABA股票数据保存功能正常")
                 
                 # 验证保存的数据可以读取
                 saved_data = self.data_interface.get_stock_data(test_stock_code, Period.Day)
-                self.assertFalse(saved_data.empty, "保存的AAPL数据应该可以读取")
+                self.assertFalse(saved_data.empty, "保存的BABA数据应该可以读取")
                 self.assertEqual(len(saved_data), len(daily_data), "保存和读取的数据行数应该一致")
-                logger.info("✓ AAPL股票数据读取功能正常")
+                logger.info("✓ BABA股票数据读取功能正常")
                 
                 # 测试全量读取
                 full_data = self.data_interface.get_stock_data(test_stock_code, Period.Day)
@@ -143,7 +143,7 @@ class TestDataModule(unittest.TestCase):
                 logger.warning(f"未能获取{test_stock_code}的历史数据，跳过保存测试")
                 
         except Exception as e:
-            logger.error(f"获取AAPL数据失败: {e}")
+            logger.error(f"获取BABA数据失败: {e}")
             logger.warning("如果API配置有问题，将使用模拟数据进行测试")
         
         # 清理测试数据
@@ -263,6 +263,103 @@ class TestDataModule(unittest.TestCase):
             logger.error(f"测试失败: {e}")
             logger.warning("请确保配置了正确的LongPort API环境变量")
             self.fail(f"获取交易时段信息时发生异常: {e}")
+
+    def test_get_stock_list(self):
+        logger.info("=== 测试获取自选股列表 ===")
+        
+        try:
+            logger.info("开始获取自选股列表")
+            
+            # 获取自选股列表
+            stock_list = self.collector.get_stock_list()
+            
+            # 断言测试
+            self.assertIsNotNone(stock_list, "自选股列表不应该为None")
+            self.assertIsInstance(stock_list, list, "自选股列表应该是列表类型")
+            
+            logger.info(f"✓ 成功获取自选股列表: {len(stock_list)} 只股票")
+            
+            if len(stock_list) > 0:
+                # 验证自选股数据结构
+                for i, security in enumerate(stock_list):
+                    # 验证必要的属性
+                    self.assertTrue(hasattr(security, 'symbol'), f"第{i+1}只股票应该有symbol属性")
+                    self.assertTrue(hasattr(security, 'market'), f"第{i+1}只股票应该有market属性")
+                    self.assertTrue(hasattr(security, 'name'), f"第{i+1}只股票应该有name属性")
+                    self.assertTrue(hasattr(security, 'watched_price'), f"第{i+1}只股票应该有watched_price属性")
+                    self.assertTrue(hasattr(security, 'watched_at'), f"第{i+1}只股票应该有watched_at属性")
+                    
+                    # 验证股票代码格式
+                    symbol = security.symbol
+                    self.assertIsNotNone(symbol, f"第{i+1}只股票的代码不应该为None")
+                    self.assertIsInstance(symbol, str, f"第{i+1}只股票的代码应该是字符串")
+                    self.assertTrue(len(symbol) > 0, f"第{i+1}只股票的代码不应该为空")
+                    
+                    # 验证股票名称
+                    name = security.name
+                    self.assertIsNotNone(name, f"第{i+1}只股票的名称不应该为None")
+                    self.assertIsInstance(name, str, f"第{i+1}只股票的名称应该是字符串")
+                    self.assertTrue(len(name) > 0, f"第{i+1}只股票的名称不应该为空")
+                    
+                    # 验证市场信息
+                    market = security.market
+                    self.assertIsNotNone(market, f"第{i+1}只股票的市场信息不应该为None")
+                    
+                    # 验证关注时间
+                    watched_at = security.watched_at
+                    self.assertIsNotNone(watched_at, f"第{i+1}只股票的关注时间不应该为None")
+                    
+                    logger.info(f"股票 {i+1}:")
+                    logger.info(f"  代码: {symbol}")
+                    logger.info(f"  名称: {name}")
+                    logger.info(f"  市场: {market}")
+                    
+                    # 关注价格可能为None
+                    if security.watched_price is not None:
+                        logger.info(f"  关注价格: {security.watched_price}")
+                    else:
+                        logger.info(f"  关注价格: 未设置")
+                    
+                    logger.info(f"  关注时间: {watched_at}")
+                    logger.info("-" * 30)
+                
+                # 统计不同市场的股票数量
+                market_stats = {}
+                for security in stock_list:
+                    market = str(security.market)
+                    market_stats[market] = market_stats.get(market, 0) + 1
+                
+                logger.info("市场分布统计:")
+                for market, count in market_stats.items():
+                    logger.info(f"  {market}: {count} 只股票")
+                
+                # 检查股票代码是否有重复
+                symbols = [security.symbol for security in stock_list]
+                unique_symbols = set(symbols)
+                
+                if len(symbols) == len(unique_symbols):
+                    logger.info("✓ 股票代码无重复")
+                else:
+                    logger.warning(f"股票代码有重复: 总数 {len(symbols)}, 去重后 {len(unique_symbols)}")
+                    # 找出重复的股票代码
+                    from collections import Counter
+                    symbol_counts = Counter(symbols)
+                    duplicates = [symbol for symbol, count in symbol_counts.items() if count > 1]
+                    logger.warning(f"重复的股票代码: {duplicates}")
+                
+                logger.success("自选股列表数据验证完成")
+                
+                # 返回股票列表以供其他测试方法使用
+                return stock_list
+            else:
+                logger.warning("自选股列表为空")
+                logger.info("提示: 请在LongPort app中添加一些自选股，然后重新运行测试")
+                return []
+                
+        except Exception as e:
+            logger.error(f"测试失败: {e}")
+            logger.warning("请确保配置了正确的LongPort API环境变量")
+            self.fail(f"获取自选股列表时发生异常: {e}")
 
     def test_get_stock_basic_info(self):
         logger.info("=== 测试Collector获取股票基础信息 ===")
@@ -481,7 +578,7 @@ class TestDataModule(unittest.TestCase):
     def test_get_stock_candlesticks(self):
         logger.info("=== 测试获取股票K线数据 ===")
         
-        test_stock = 'AAPL.US'
+        test_stock = 'BABA.US'
         
         try:
             logger.info(f"测试股票: {test_stock}")
@@ -598,7 +695,7 @@ class TestDataModule(unittest.TestCase):
     def test_get_stock_history(self):
         logger.info("=== 测试获取股票历史K线数据 ===")
         
-        test_stock = 'AAPL.US'
+        test_stock = 'BABA.US'
         
         try:
             logger.info(f"测试股票: {test_stock}")
@@ -670,6 +767,7 @@ if __name__ == "__main__":
     # 添加测试用例 - 按照collector里的实现顺序
     suite.addTest(TestDataModule('test_data_interface'))
     suite.addTest(TestDataModule('test_get_trading_session'))
+    suite.addTest(TestDataModule('test_get_stock_list'))
     suite.addTest(TestDataModule('test_get_stock_basic_info'))
     suite.addTest(TestDataModule('test_get_stock_quote'))
     suite.addTest(TestDataModule('test_get_stock_calc_index'))

@@ -8,26 +8,26 @@ from backtesting import Backtest, Strategy
 from longport.openapi import Period
 from awesometrader import DataInterface
 
-class SMA(Strategy):
-    n = 12
+class MFI(Strategy):
+    period = 14
 
     def init(self):
-        self.weekly_ma = self.I(talib.SMA, self.data.Close, self.n)
+        self.mfi = self.I(talib.MFI, self.data.High, self.data.Low, self.data.Close, self.data.Volume.astype(float), self.period)
 
     def next(self):
-        if not self.position and self.data.Close[-1] > self.weekly_ma[-1]:
+        if not self.position and self.mfi[-1] < 20:
             self.buy()
-        elif self.position and self.data.Close[-1] < self.weekly_ma[-1]:
+        elif self.position and self.mfi[-1] > 80:
             self.position.close()
 
 if __name__ == '__main__':
     data_interface = DataInterface()
     data = data_interface.get_stock_data("PDD.US", Period.Week, start_date=datetime(2018, 1, 1), end_date=datetime(2025, 1, 1))
-    backtest = Backtest(data, SMA, commission=.002)
+    backtest = Backtest(data, MFI, commission=.002)
     backtest.Pool = multiprocessing.Pool
 
     stats, heatmap = backtest.optimize(
-        n=range(5, 100, 1),
+        period=range(2, 20, 1),
         maximize='Equity Final [$]',
         max_tries=10000,
         random_state=0,

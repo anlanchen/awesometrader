@@ -3,7 +3,7 @@ from typing import List, Dict, Type
 from loguru import logger
 from datetime import datetime
 from longport.openapi import Period, AdjustType, TradeSessions, CalcIndex
-from longport.openapi import QuoteContext, Config, MarketTradingSession, SecurityStaticInfo, SecurityQuote, SecurityCalcIndex
+from longport.openapi import QuoteContext, Config, MarketTradingSession, SecurityStaticInfo, SecurityQuote, SecurityCalcIndex, WatchlistSecurity
 
 class Collector:
     def __init__(self):
@@ -37,6 +37,36 @@ class Collector:
         except Exception as e:
             logger.error(f"获取交易时段信息失败: {e}")
             raise e
+    
+    def get_stock_list(self) -> List[WatchlistSecurity]:
+        """
+        获取自选股列表
+        根据LongPort API文档: https://open.longportapp.com/zh-CN/docs/quote/individual/watchlist_groups
+        
+        :return: WatchlistSecurity对象列表，仅包含name为'all'分组中的股票
+        """
+        try:
+            logger.info("正在获取自选股列表")
+            
+            # 调用LongPort API获取自选股分组
+            response = self.quote_ctx.watchlist()
+            
+            # 只处理name为'all'的分组
+            all_securities = []
+            for group in response:
+                if group.name == 'all':
+                    all_securities = group.securities
+
+            logger.success(f"成功获取自选股列表，共 {len(all_securities)} 只股票")
+            for security in all_securities:
+                logger.info(f"  股票: {security.symbol} ({security.name}) - 市场: {security.market}")
+            
+            return all_securities
+            
+        except Exception as e:
+            logger.error(f"获取自选股列表失败: {e}")
+            return []
+        
 
     def get_stock_basic_info(self, stock_code_list: List[str]) -> Dict[str, SecurityStaticInfo]:
         """

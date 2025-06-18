@@ -105,11 +105,18 @@ class DataInterface:
             stock_pool_path = self.cache_dir / stock_list_file
             if stock_pool_path.exists():
                 df = pd.read_csv(stock_pool_path)
-                # 假设股票代码在第一列或名为'code'的列
-                if 'code' in df.columns:
+                # 按优先级顺序查找股票代码列
+                if 'stock_code' in df.columns:
+                    stock_codes = df['stock_code'].tolist()
+                elif 'code' in df.columns:
                     stock_codes = df['code'].tolist()
                 else:
+                    # 默认使用第一列
                     stock_codes = df.iloc[:, 0].tolist()
+                
+                # 过滤掉空值
+                stock_codes = [code for code in stock_codes if pd.notna(code) and str(code).strip()]
+                
                 logger.info(f"成功加载{len(stock_codes)}只股票")
                 return stock_codes
             else:
@@ -117,6 +124,42 @@ class DataInterface:
                 return []
         except Exception as e:
             logger.error(f"加载股票池失败: {e}")
+            return []
+
+    def load_stock_pool_with_names(self, stock_list_file: str) -> List[Dict[str, str]]:
+        """
+        从文件中加载股票池（包含名称信息）
+        :param stock_list_file: 股票列表文件路径
+        :return: 包含股票代码和名称的字典列表，格式：[{'code': 'AAPL.US', 'name': '苹果公司'}, ...]
+        """
+        try:
+            stock_pool_path = self.cache_dir / stock_list_file
+            if stock_pool_path.exists():
+                df = pd.read_csv(stock_pool_path)
+                stocks_info = []
+                
+                # 检查是否有股票名称列
+                if 'stock_code' in df.columns and 'stock_name' in df.columns:
+                    for _, row in df.iterrows():
+                        if pd.notna(row['stock_code']) and str(row['stock_code']).strip():
+                            stock_info = {
+                                'code': str(row['stock_code']).strip(),
+                                'name': str(row['stock_name']).strip() if pd.notna(row['stock_name']) else ''
+                            }
+                            stocks_info.append(stock_info)
+                else:
+                    # 如果没有名称列，只返回代码
+                    stock_codes = self.load_stock_pool(stock_list_file)
+                    for code in stock_codes:
+                        stocks_info.append({'code': code, 'name': ''})
+                
+                logger.info(f"成功加载{len(stocks_info)}只股票的详细信息")
+                return stocks_info
+            else:
+                logger.warning(f"股票池文件不存在: {stock_pool_path}")
+                return []
+        except Exception as e:
+            logger.error(f"加载股票池详细信息失败: {e}")
             return []
     
     # ==================== 股票数据操作 ====================
