@@ -11,11 +11,13 @@ AwesomeTrader Core Module
 # 导入主要的数据和工具模块
 from .datainterface import DataInterface
 from .collector import Collector
+from .trader import Trader
 from .utils import Utils
 
 __version__ = "0.1.0"
 __all__ = [
     'DataInterface', 
     'Collector', 
+    'Trader',
     'Utils'
 ] 
