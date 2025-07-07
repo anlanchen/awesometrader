@@ -21,7 +21,7 @@ from awesometrader.collector import Collector
 from awesometrader.datainterface import DataInterface
 
 
-class DataCollectorMain:
+class CollectorMain:
     def __init__(self):
         """初始化数据收集器"""
         # 加载环境变量文件
@@ -519,13 +519,13 @@ def main():
     """主函数"""
     
     # 设置日志
-    logger.add("logs/data_collector_{time}.log", rotation="1 day", retention="30 days", 
+    logger.add("logs/collector_{time}.log", rotation="1 day", retention="30 days", 
                format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}")
     
     logger.info("数据收集器启动")
     
     # 创建数据收集器实例
-    collector_main = DataCollectorMain()
+    collector_main = CollectorMain()
     
     # 启动交互模式
     logger.info("启动交互模式")

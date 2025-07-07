@@ -1,9 +1,9 @@
 import pandas as pd
 from typing import List, Dict, Type
 from loguru import logger
-from datetime import datetime
+from datetime import datetime, date
 from longport.openapi import Period, AdjustType, TradeSessions, CalcIndex
-from longport.openapi import QuoteContext, Config, MarketTradingSession, SecurityStaticInfo, SecurityQuote, SecurityCalcIndex, WatchlistSecurity
+from longport.openapi import QuoteContext, Config, MarketTradingSession, SecurityStaticInfo, SecurityQuote, SecurityCalcIndex, WatchlistSecurity, StrikePriceInfo, OptionQuote
 
 class Collector:
     def __init__(self):
@@ -127,7 +127,8 @@ class Collector:
         except Exception as e:
             logger.error(f"获取股票实时行情失败: {e}")
             return {}
-    
+
+
     def get_stock_calc_index(self, stock_code_list: List[str], calc_index_list: List[Type[CalcIndex]] = None) -> Dict[str, SecurityCalcIndex]:
         """
         获取股票计算指标数据
@@ -345,4 +346,133 @@ class Collector:
             logger.error(f"获取股票历史数据失败 {stock_code}: {e}")
             return pd.DataFrame()
 
+    def get_option_chain_expiry_date_list(self, stock_code: str) -> List[date]:
+        """
+        获取标的的期权链到期日列表
+        根据LongPort API文档: https://open.longportapp.com/zh-CN/docs/quote/pull/optionchain-date
         
+        :param stock_code: 标的代码，使用 ticker.region 格式，例如：'AAPL.US', '700.HK'
+        :return: 期权链到期日列表，date对象列表，例如：[date(2022, 4, 22), date(2022, 4, 29), date(2022, 5, 6)]
+        """
+        try:
+            logger.info(f"正在获取标的 {stock_code} 的期权链到期日列表")
+            
+            # 调用LongPort API获取期权链到期日列表
+            response = self.quote_ctx.option_chain_expiry_date_list(stock_code)
+            
+            if not response:
+                logger.warning(f"标的 {stock_code} 未获取到期权链到期日数据")
+                return []
+            
+            logger.success(f"成功获取标的 {stock_code} 的期权链到期日列表，共 {len(response)} 个到期日")
+            logger.info(f"到期日列表: {response}")
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"获取标的 {stock_code} 的期权链到期日列表失败: {e}")
+            return []
+
+    def get_option_chain_info_by_date(self, stock_code: str, expiry_date: date) -> List[StrikePriceInfo]:
+        """
+        获取标的的期权链到期日期权标的列表
+        根据LongPort API文档: https://open.longportapp.com/zh-CN/docs/quote/pull/optionchain-date-strike
+        
+        :param stock_code: 标的代码，使用 ticker.region 格式，例如：'AAPL.US', '700.HK'
+        :param expiry_date: 期权到期日，date对象，例如：date(2022, 4, 29)
+        :return: 期权链信息列表，StrikePriceInfo对象列表，包含 price(行权价), call_symbol(CALL期权代码), put_symbol(PUT期权代码), standard(是否标准期权)
+        """
+        try:
+            logger.info(f"正在获取标的 {stock_code} 的期权链信息，到期日: {expiry_date}")
+            
+            # 调用LongPort API获取期权链信息
+            response = self.quote_ctx.option_chain_info_by_date(stock_code, expiry_date)
+            
+            if not response:
+                logger.warning(f"标的 {stock_code} 在到期日 {expiry_date} 未获取到期权链数据")
+                return []
+            
+            logger.success(f"成功获取标的 {stock_code} 的期权链信息，共 {len(response)} 个行权价")
+            if len(response) > 0:
+                logger.info(f"行权价范围: {response[0].price} - {response[-1].price}")
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"获取标的 {stock_code} 的期权链信息失败: {e}")
+            return []
+
+    def get_option_quote(self, option_symbol_list: List[str]) -> Dict[str, OptionQuote]:
+        """
+        获取期权实时行情
+        根据LongPort API文档: https://open.longportapp.com/zh-CN/docs/quote/pull/option-quote
+        
+        :param option_symbol_list: 期权代码列表，通过期权链接口获取期权标的的symbol，例如：['BABA230120C160000.US', 'AAPL230317P160000.US']
+        :return: 包含期权实时行情信息的字典，键为期权代码，值为OptionQuote对象
+        """
+        if not option_symbol_list:
+            logger.warning("期权代码列表为空")
+            return {}
+        
+        # 验证请求数量限制
+        if len(option_symbol_list) > 500:
+            logger.warning(f"期权代码列表长度({len(option_symbol_list)})超过API限制(500)，将截取前500个")
+            option_symbol_list = option_symbol_list[:500]
+        
+        try:
+            logger.info(f"正在获取{len(option_symbol_list)}个期权的实时行情")
+            
+            # 调用LongPort API获取期权实时行情
+            response = self.quote_ctx.option_quote(option_symbol_list)
+            
+            option_quote_dict = {}
+            # response是一个包含OptionQuote对象的列表
+            for quote in response:
+                option_quote_dict[quote.symbol] = quote
+            
+            logger.success(f"成功获取{len(option_quote_dict)}个期权的实时行情")
+            return option_quote_dict
+            
+        except Exception as e:
+            logger.error(f"获取期权实时行情失败: {e}")
+            return {}
+
+    def get_depth(self, stock_code: str):
+        """
+        获取标的盘口数据
+        根据LongPort API文档: https://open.longportapp.com/zh-CN/docs/quote/pull/depth
+        
+        :param stock_code: 标的代码，使用 ticker.region 格式，例如：'700.HK', 'AAPL.US'
+        :return: 盘口数据对象，包含买卖盘信息
+                - symbol: 标的代码
+                - ask: 卖盘列表，每个元素包含 position(档位), price(价格), volume(挂单量), order_num(订单数量)
+                - bid: 买盘列表，每个元素包含 position(档位), price(价格), volume(挂单量), order_num(订单数量)
+        """
+        if not stock_code:
+            logger.warning("股票代码为空")
+            return None
+        
+        try:
+            logger.info(f"正在获取标的 {stock_code} 的盘口数据")
+            
+            # 调用LongPort API获取盘口数据
+            response = self.quote_ctx.depth(stock_code)
+            
+            if response:
+                logger.success(f"成功获取标的 {stock_code} 的盘口数据")
+                logger.info(f"  卖盘档位数: {len(response.asks)}")
+                logger.info(f"  买盘档位数: {len(response.bids)}")
+                
+                # 打印详细的盘口信息
+                if response.asks:
+                    logger.info(f"  最优卖价: {response.asks[0].price} (量: {response.asks[0].volume})")
+                if response.bids:
+                    logger.info(f"  最优买价: {response.bids[0].price} (量: {response.bids[0].volume})")
+            else:
+                logger.warning(f"标的 {stock_code} 未获取到盘口数据")
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"获取标的 {stock_code} 盘口数据失败: {e}")
+            return None

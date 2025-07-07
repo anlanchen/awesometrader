@@ -12,6 +12,7 @@ AwesomeTrader Core Module
 from .datainterface import DataInterface
 from .collector import Collector
 from .trader import Trader
+from .messager import Messager
 from .utils import Utils
 
 __version__ = "0.1.0"

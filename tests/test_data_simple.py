@@ -759,6 +759,336 @@ class TestDataModule(unittest.TestCase):
             logger.warning("请确保配置了正确的LongPort API环境变量和权限")
             self.fail(f"获取股票历史数据时发生异常: {e}")
 
+    def test_get_option_quote(self):
+        logger.info("=== 测试获取期权行情 ===")
+        
+        test_stock = 'BABA.US'
+        
+        try:
+            logger.info(f"测试标的股票: {test_stock}")
+            
+            # 步骤1: 获取标的股票当前价格
+            logger.info("=" * 50)
+            logger.info("步骤1: 获取标的股票当前价格")
+            
+            stock_quote = self.collector.get_stock_quote([test_stock])
+            if not stock_quote or test_stock not in stock_quote:
+                self.skipTest(f"无法获取{test_stock}的股票行情，跳过期权测试")
+            
+            current_price = stock_quote[test_stock].last_done
+            logger.info(f"当前股价: {current_price}")
+            
+            # 计算5%价格范围 (转换为float类型进行计算)
+            current_price_float = float(current_price)
+            price_range = current_price_float * 0.05
+            min_strike = current_price_float - price_range
+            max_strike = current_price_float + price_range
+            logger.info(f"行权价筛选范围: {min_strike:.2f} - {max_strike:.2f} (5%以内)")
+            
+            # 步骤2: 获取期权链到期日列表
+            logger.info("=" * 50)
+            logger.info("步骤2: 获取期权链到期日列表")
+            
+            expiry_dates = self.collector.get_option_chain_expiry_date_list(test_stock)
+            self.assertIsNotNone(expiry_dates, "期权链到期日列表不应该为None")
+            self.assertIsInstance(expiry_dates, list, "期权链到期日列表应该是列表类型")
+            
+            if not expiry_dates:
+                self.skipTest(f"{test_stock}没有期权链数据，跳过测试")
+            
+            logger.info(f"获取到 {len(expiry_dates)} 个到期日")
+            
+            # 筛选最近一周内的到期日
+            from datetime import date, timedelta
+            today = date.today()
+            one_week_later = today + timedelta(days=7)
+            
+            recent_expiry_dates = [d for d in expiry_dates if today <= d <= one_week_later]
+            
+            if not recent_expiry_dates:
+                # 如果一周内没有到期日，取最近的一个到期日进行测试
+                logger.warning("一周内没有到期日，使用最近的1个到期日进行测试")
+                recent_expiry_dates = sorted([d for d in expiry_dates if d >= today])[:1]
+            
+            logger.info(f"筛选后的到期日 (最近一周或最近1个): {recent_expiry_dates}")
+            
+            # 步骤3: 获取期权链信息并筛选期权
+            logger.info("=" * 50)
+            logger.info("步骤3: 获取期权链信息并筛选期权")
+            
+            all_call_options = []
+            all_put_options = []
+            
+            for expiry_date in recent_expiry_dates:
+                logger.info(f"处理到期日: {expiry_date}")
+                
+                option_chain = self.collector.get_option_chain_info_by_date(test_stock, expiry_date)
+                self.assertIsNotNone(option_chain, f"期权链信息不应该为None: {expiry_date}")
+                self.assertIsInstance(option_chain, list, f"期权链信息应该是列表类型: {expiry_date}")
+                
+                if not option_chain:
+                    logger.warning(f"到期日 {expiry_date} 没有期权链数据")
+                    continue
+                
+                logger.info(f"到期日 {expiry_date} 共 {len(option_chain)} 个行权价")
+                
+                # 筛选5%价格范围内的期权
+                filtered_options = [
+                    opt for opt in option_chain 
+                    if min_strike <= opt.price <= max_strike
+                ]
+                
+                logger.info(f"价格范围内的期权: {len(filtered_options)} 个")
+                
+                for option in filtered_options:
+                    strike_price = option.price
+                    call_symbol = option.call_symbol if hasattr(option, 'call_symbol') else None
+                    put_symbol = option.put_symbol if hasattr(option, 'put_symbol') else None
+                    
+                    logger.info(f"  行权价: {strike_price}")
+                    if call_symbol:
+                        logger.info(f"    CALL: {call_symbol}")
+                        all_call_options.append(call_symbol)
+                    if put_symbol:
+                        logger.info(f"    PUT:  {put_symbol}")
+                        all_put_options.append(put_symbol)
+            
+            logger.info(f"总共筛选出 CALL 期权: {len(all_call_options)} 个")
+            logger.info(f"总共筛选出 PUT 期权: {len(all_put_options)} 个")
+            
+            if not all_call_options and not all_put_options:
+                self.skipTest("没有找到符合条件的期权，跳过行情获取测试")
+            
+            # 步骤4: 获取期权行情
+            logger.info("=" * 50)
+            logger.info("步骤4: 获取期权行情")
+            
+            # 合并所有期权代码，限制数量避免超出API限制
+            all_options = all_call_options + all_put_options
+            max_options = 50  # 限制期权数量，避免超出API限制
+            if len(all_options) > max_options:
+                logger.warning(f"期权数量({len(all_options)})超过限制，随机选择{max_options}个进行测试")
+                import random
+                all_options = random.sample(all_options, max_options)
+            
+            if all_options:
+                option_quotes = self.collector.get_option_quote(all_options)
+                
+                # 断言测试
+                self.assertIsNotNone(option_quotes, "期权行情数据不应该为None")
+                self.assertIsInstance(option_quotes, dict, "期权行情数据应该是字典类型")
+                
+                logger.success(f"成功获取 {len(option_quotes)} 个期权的行情数据")
+                
+                # 验证和展示期权行情数据
+                call_count = 0
+                put_count = 0
+                
+                for symbol, quote in option_quotes.items():
+                    self.assertIsNotNone(symbol, f"期权代码{symbol}不应该为None")
+                    self.assertIsNotNone(quote, f"期权{symbol}的行情数据不应该为None")
+                    
+                    # 判断是CALL还是PUT
+                    option_type = "CALL" if "C" in symbol else "PUT" if "P" in symbol else "UNKNOWN"
+                    if option_type == "CALL":
+                        call_count += 1
+                    elif option_type == "PUT":
+                        put_count += 1
+                    
+                    logger.info(f"期权代码: {symbol} ({option_type})")
+                    
+                    # 验证期权行情字段
+                    if hasattr(quote, 'last_done') and quote.last_done:
+                        logger.info(f"  最新价: {quote.last_done}")
+                    if hasattr(quote, 'bid') and quote.bid:
+                        logger.info(f"  买一价: {quote.bid}")
+                    if hasattr(quote, 'ask') and quote.ask:
+                        logger.info(f"  卖一价: {quote.ask}")
+                    if hasattr(quote, 'volume') and quote.volume:
+                        logger.info(f"  成交量: {quote.volume}")
+                    if hasattr(quote, 'implied_volatility') and quote.implied_volatility:
+                        logger.info(f"  隐含波动率: {quote.implied_volatility}%")
+                    
+                    # 期权希腊字母
+                    if hasattr(quote, 'delta') and quote.delta is not None:
+                        logger.info(f"  Delta: {quote.delta}")
+                    if hasattr(quote, 'gamma') and quote.gamma is not None:
+                        logger.info(f"  Gamma: {quote.gamma}")
+                    if hasattr(quote, 'theta') and quote.theta is not None:
+                        logger.info(f"  Theta: {quote.theta}")
+                    if hasattr(quote, 'vega') and quote.vega is not None:
+                        logger.info(f"  Vega: {quote.vega}")
+                    
+                    logger.info("-" * 30)
+                
+                # 总结统计
+                logger.info("=" * 50)
+                logger.info("期权行情获取总结:")
+                logger.info(f"  标的股票: {test_stock}")
+                logger.info(f"  当前股价: {current_price_float}")
+                logger.info(f"  行权价范围: {min_strike:.2f} - {max_strike:.2f}")
+                logger.info(f"  CALL期权: {call_count} 个")
+                logger.info(f"  PUT期权: {put_count} 个")
+                logger.info(f"  总期权数: {len(option_quotes)} 个")
+                
+                logger.success("期权行情获取测试完成")
+            else:
+                self.skipTest("没有符合条件的期权代码")
+                
+        except Exception as e:
+            logger.error(f"测试失败: {e}")
+            logger.warning("请确保配置了正确的LongPort API环境变量和期权权限")
+            self.fail(f"获取期权行情时发生异常: {e}")
+
+    def test_get_depth(self):
+        logger.info("=== 测试获取标的盘口数据 ===")
+        
+        # 指定测试股票：BABA.US (普通股票)
+        test_stocks = ['BABA.US']
+        logger.info(f"测试指定标的: {test_stocks}")
+        
+        successful_tests = 0
+        
+        for stock_code in test_stocks:
+            try:
+                logger.info("=" * 50)
+                logger.info(f"测试股票: {stock_code}")
+                
+                # 获取盘口数据
+                depth_data = self.collector.get_depth(stock_code)
+                
+                # 基本断言测试
+                self.assertIsNotNone(depth_data, f"股票{stock_code}的盘口数据不应该为None")
+                
+                # 验证数据结构
+                self.assertTrue(hasattr(depth_data, 'asks'), f"股票{stock_code}的盘口数据应该有ask属性")
+                self.assertTrue(hasattr(depth_data, 'bids'), f"股票{stock_code}的盘口数据应该有bid属性")
+                
+                logger.info(f"✓ 成功获取股票 {stock_code} 的盘口数据")
+                
+                # 验证和展示卖盘数据
+                ask_data = depth_data.asks
+                self.assertIsNotNone(ask_data, f"股票{stock_code}的卖盘数据不应该为None")
+                self.assertIsInstance(ask_data, list, f"股票{stock_code}的卖盘数据应该是列表类型")
+                
+                logger.info(f"  卖盘档位数: {len(ask_data)}")
+                
+                if ask_data:
+                    logger.info("  卖盘详情:")
+                    for i, ask in enumerate(ask_data[:5]):  # 只显示前5档
+                        # 验证卖盘数据结构
+                        self.assertTrue(hasattr(ask, 'position'), f"卖盘第{i+1}档应该有position属性")
+                        self.assertTrue(hasattr(ask, 'price'), f"卖盘第{i+1}档应该有price属性")
+                        self.assertTrue(hasattr(ask, 'volume'), f"卖盘第{i+1}档应该有volume属性")
+                        self.assertTrue(hasattr(ask, 'order_num'), f"卖盘第{i+1}档应该有order_num属性")
+                        
+                        # 验证数据有效性
+                        self.assertIsNotNone(ask.position, f"卖盘第{i+1}档的档位不应该为None")
+                        self.assertIsNotNone(ask.price, f"卖盘第{i+1}档的价格不应该为None")
+                        self.assertIsNotNone(ask.volume, f"卖盘第{i+1}档的挂单量不应该为None")
+                        self.assertIsNotNone(ask.order_num, f"卖盘第{i+1}档的订单数不应该为None")
+                        
+                        # 验证档位顺序
+                        self.assertEqual(ask.position, i + 1, f"卖盘档位应该从1开始递增")
+                        
+                        # 验证数值类型和合理性
+                        self.assertTrue(ask.volume >= 0, f"卖盘第{i+1}档的挂单量应该大于等于0")
+                        self.assertTrue(ask.order_num >= 0, f"卖盘第{i+1}档的订单数应该大于等于0")
+                        
+                        logger.info(f"    档位{ask.position}: 价格={ask.price}, 量={ask.volume}, 订单数={ask.order_num}")
+                else:
+                    logger.warning(f"  股票 {stock_code} 当前没有卖盘数据")
+                
+                # 验证和展示买盘数据
+                bid_data = depth_data.bids
+                self.assertIsNotNone(bid_data, f"股票{stock_code}的买盘数据不应该为None")
+                self.assertIsInstance(bid_data, list, f"股票{stock_code}的买盘数据应该是列表类型")
+                
+                logger.info(f"  买盘档位数: {len(bid_data)}")
+                
+                if bid_data:
+                    logger.info("  买盘详情:")
+                    for i, bid in enumerate(bid_data[:5]):  # 只显示前5档
+                        # 验证买盘数据结构
+                        self.assertTrue(hasattr(bid, 'position'), f"买盘第{i+1}档应该有position属性")
+                        self.assertTrue(hasattr(bid, 'price'), f"买盘第{i+1}档应该有price属性")
+                        self.assertTrue(hasattr(bid, 'volume'), f"买盘第{i+1}档应该有volume属性")
+                        self.assertTrue(hasattr(bid, 'order_num'), f"买盘第{i+1}档应该有order_num属性")
+                        
+                        # 验证数据有效性
+                        self.assertIsNotNone(bid.position, f"买盘第{i+1}档的档位不应该为None")
+                        self.assertIsNotNone(bid.price, f"买盘第{i+1}档的价格不应该为None")
+                        self.assertIsNotNone(bid.volume, f"买盘第{i+1}档的挂单量不应该为None")
+                        self.assertIsNotNone(bid.order_num, f"买盘第{i+1}档的订单数不应该为None")
+                        
+                        # 验证档位顺序
+                        self.assertEqual(bid.position, i + 1, f"买盘档位应该从1开始递增")
+                        
+                        # 验证数值类型和合理性
+                        self.assertTrue(bid.volume >= 0, f"买盘第{i+1}档的挂单量应该大于等于0")
+                        self.assertTrue(bid.order_num >= 0, f"买盘第{i+1}档的订单数应该大于等于0")
+                        
+                        logger.info(f"    档位{bid.position}: 价格={bid.price}, 量={bid.volume}, 订单数={bid.order_num}")
+                else:
+                    logger.warning(f"  股票 {stock_code} 当前没有买盘数据")
+                
+                # 验证买卖盘价格关系（如果都有数据）
+                if ask_data and bid_data:
+                    # 将价格转换为float进行比较
+                    best_ask_price = float(ask_data[0].price) if ask_data[0].price else None
+                    best_bid_price = float(bid_data[0].price) if bid_data[0].price else None
+                    
+                    if best_ask_price is not None and best_bid_price is not None:
+                        self.assertGreaterEqual(best_ask_price, best_bid_price, 
+                                              f"股票{stock_code}的最优卖价应该大于等于最优买价")
+                        logger.info(f"  买卖价差: {best_ask_price - best_bid_price:.4f}")
+                        logger.info(f"  买卖价差率: {(best_ask_price - best_bid_price) / best_bid_price * 100:.4f}%")
+                
+                # 验证卖盘价格递增关系
+                if len(ask_data) > 1:
+                    for i in range(1, min(len(ask_data), 5)):  # 检查前5档
+                        price_prev = float(ask_data[i-1].price) if ask_data[i-1].price else 0
+                        price_curr = float(ask_data[i].price) if ask_data[i].price else 0
+                        if price_prev > 0 and price_curr > 0:
+                            self.assertGreaterEqual(price_curr, price_prev, 
+                                                  f"股票{stock_code}卖盘第{i+1}档价格应该大于等于第{i}档价格")
+                
+                # 验证买盘价格递减关系
+                if len(bid_data) > 1:
+                    for i in range(1, min(len(bid_data), 5)):  # 检查前5档
+                        price_prev = float(bid_data[i-1].price) if bid_data[i-1].price else float('inf')
+                        price_curr = float(bid_data[i].price) if bid_data[i].price else float('inf')
+                        if price_prev < float('inf') and price_curr < float('inf'):
+                            self.assertLessEqual(price_curr, price_prev, 
+                                               f"股票{stock_code}买盘第{i+1}档价格应该小于等于第{i}档价格")
+                
+                successful_tests += 1
+                logger.success(f"✓ 股票 {stock_code} 盘口数据验证通过")
+                
+            except Exception as e:
+                logger.error(f"测试股票 {stock_code} 失败: {e}")
+                # 如果是特定的错误（如权限问题），我们继续测试其他股票
+                if "权限" in str(e) or "permission" in str(e).lower():
+                    logger.warning(f"股票 {stock_code} 可能没有盘口数据权限，继续测试其他股票")
+                    continue
+                else:
+                    # 其他错误则抛出异常
+                    self.fail(f"获取股票 {stock_code} 盘口数据时发生异常: {e}")
+        
+        # 测试总结
+        logger.info("=" * 50)
+        logger.info("盘口数据获取测试总结:")
+        logger.info(f"  测试股票总数: {len(test_stocks)}")
+        logger.info(f"  成功获取数据: {successful_tests} 只")
+        logger.info(f"  成功率: {successful_tests/len(test_stocks)*100:.1f}%")
+        
+        # 至少要有一只股票成功获取盘口数据
+        self.assertGreater(successful_tests, 0, "至少应该有一只股票成功获取盘口数据")
+        
+        logger.success("标的盘口数据获取测试完成")
+        
+        logger.success("=== 标的盘口数据测试全部完成 ===")
+
 
 if __name__ == "__main__":
     # 创建测试套件
@@ -773,6 +1103,8 @@ if __name__ == "__main__":
     suite.addTest(TestDataModule('test_get_stock_calc_index'))
     suite.addTest(TestDataModule('test_get_stock_candlesticks'))
     suite.addTest(TestDataModule('test_get_stock_history'))
+    suite.addTest(TestDataModule('test_get_option_quote'))
+    suite.addTest(TestDataModule('test_get_depth'))
     
     # 运行测试
     runner = unittest.TextTestRunner(verbosity=2)
