@@ -31,5 +31,6 @@ dependencies = [
     "python-dotenv",  # 环境变量文件支持
     "pyarrow",  # for parquet support
     "longport", # 长桥openapi
-    "backtesting" # 回测框架
+    "backtesting", # 回测框架
+    "pytz"  # 时区处理
 ]
