@@ -28,7 +28,7 @@ class AccountReporter:
         self.trader = Trader()
 
         self.webhook_url = "https://oapi.dingtalk.com/robot/send?access_token=56b1816700f3fd34ca58e1db36bcb23c8bd048745622a121c44b4ec1f805a3b8"
-        self.secret = "SECc148e9dc5e5bc7914d332f5e5687ee000302a46f61f4df4045aabbbe17ba2e0a1"
+        self.secret = "SECc148e9dc5e5bc7914d332f5e5687ee000302a46f61f4df4045aabbbe17ba2e0a"
         self.messager = Messager(dingtalk_webhook=self.webhook_url, dingtalk_secret=self.secret)
         
         # 初始化数据收集器（用于获取交易时段和股票报价）
