@@ -5,7 +5,7 @@ import os
 import sys
 import time
 import schedule
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 from decimal import Decimal
 import pytz
@@ -58,7 +58,45 @@ class AccountReporter:
         
         logger.info("账户报告器初始化完成")
     
-
+    def is_trading_day(self, market: str) -> bool:
+        """
+        判断今天是否为指定市场的交易日
+        
+        Args:
+            market: 市场代码 ('US' 或 'HK')
+            
+        Returns:
+            bool: 是否为交易日
+        """
+        try:
+            today = date.today()
+            
+            # 获取今天的交易日信息（查询今天到今天的范围）
+            trading_days_response = self.collector.get_trading_days(
+                market=market,
+                begin_date=today,
+                end_date=today
+            )
+            
+            # 检查今天是否在交易日列表中
+            today_str = today.strftime('%Y%m%d')
+            is_trading = any(
+                trading_day.strftime('%Y%m%d') == today_str 
+                for trading_day in trading_days_response.trading_days
+            )
+            
+            market_name = '美股' if market == 'US' else '港股'
+            if is_trading:
+                logger.info(f"今天是{market_name}交易日")
+            else:
+                logger.info(f"今天不是{market_name}交易日，跳过推送")
+            
+            return is_trading
+            
+        except Exception as e:
+            logger.error(f"检查交易日失败: {e}")
+            # 出错时默认认为是交易日，避免漏发
+            return True
     
     def get_trading_sessions(self) -> Dict[str, Any]:
         """
@@ -364,7 +402,8 @@ class AccountReporter:
         except Exception as e:
             logger.error(f"获取持仓市场失败: {e}")
             return []
-    
+
+
     def send_market_report(self, market: str) -> bool:
         """
         发送账户报告（按市场交易时间触发）
@@ -492,19 +531,37 @@ class MessagerMain:
             
             logger.info(f"当前持仓涉及市场: {position_markets}")
             
-            # 获取交易时段信息
-            trading_sessions = self.reporter.get_trading_sessions()
-            
-            # 为每个有持仓的市场设置账户报告任务（按各市场收盘时间推送）
+            # 为每个有持仓的市场检查交易日并设置账户报告任务
+            tasks_scheduled = 0
             for market in position_markets:
-                if market in trading_sessions:
-                    market_info = trading_sessions[market]
-                    close_time = market_info['close_time']
-                    self._schedule_market_report(market, close_time)
-                else:
-                    logger.warning(f"{market} 市场未找到交易时段信息，跳过设置任务")
+                market_name = "美股" if market == "US" else "港股"
+                
+                # 1. 检查是否为交易日
+                if not self.reporter.is_trading_day(market):
+                    logger.info(f"今天不是{market_name}交易日，跳过设置 {market_name} 市场的报告任务")
+                    continue
+                
+                # 2. 是交易日才获取交易时间
+                try:
+                    trading_sessions = self.reporter.get_trading_sessions()
+                    if market in trading_sessions:
+                        market_info = trading_sessions[market]
+                        close_time = market_info['close_time']
+                        
+                        # 3. 设置定时任务
+                        self._schedule_market_report(market, close_time)
+                        tasks_scheduled += 1
+                    else:
+                        logger.warning(f"{market_name} 市场未找到交易时段信息，跳过设置任务")
+                        
+                except Exception as e:
+                    logger.error(f"获取 {market_name} 市场交易时段信息失败: {e}")
+                    continue
             
-            logger.success("今日账户报告任务设置完成")
+            if tasks_scheduled > 0:
+                logger.success(f"今日账户报告任务设置完成，共设置 {tasks_scheduled} 个推送任务")
+            else:
+                logger.info("今日无交易日或无持仓，未设置推送任务")
             
         except Exception as e:
             logger.error(f"设置账户报告任务失败: {e}")

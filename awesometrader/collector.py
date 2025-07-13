@@ -2,7 +2,7 @@ import pandas as pd
 from typing import List, Dict, Type
 from loguru import logger
 from datetime import datetime, date
-from longport.openapi import Period, AdjustType, TradeSessions, CalcIndex
+from longport.openapi import Period, AdjustType, TradeSessions, CalcIndex, Market, MarketTradingDays
 from longport.openapi import QuoteContext, Config, MarketTradingSession, SecurityStaticInfo, SecurityQuote, SecurityCalcIndex, WatchlistSecurity, StrikePriceInfo, OptionQuote
 
 class Collector:
@@ -36,6 +36,55 @@ class Collector:
             
         except Exception as e:
             logger.error(f"获取交易时段信息失败: {e}")
+            raise e
+
+    def get_trading_days(self, market: str, begin_date: date, end_date: date) -> MarketTradingDays:
+        """
+        获取市场交易日
+        根据LongPort API文档: https://open.longportapp.com/zh-CN/docs/quote/pull/trade-day
+        
+        :param market: 市场，可选值：US-美股市场，HK-港股市场，CN-A股市场，SG-新加坡市场
+        :param begin_date: 开始日期
+        :param end_date: 结束日期（间隔不能大于一个月，仅支持查询最近一年的数据）
+        :return: MarketTradingDays对象，包含交易日和半日市信息
+        """
+        try:
+            logger.info(f"正在获取市场交易日: {market}, 日期范围: {begin_date} - {end_date}")
+            
+            # 验证日期范围
+            if (end_date - begin_date).days > 31:
+                raise ValueError("日期间隔不能大于一个月")
+            
+            # 转换市场字符串为Market枚举
+            market_map = {
+                'US': Market.US,
+                'HK': Market.HK,
+                'CN': Market.CN,
+                'SG': Market.SG
+            }
+            
+            if market not in market_map:
+                raise ValueError(f"不支持的市场: {market}，支持的市场: {list(market_map.keys())}")
+            
+            market_enum = market_map[market]
+            
+            # 调用LongPort API获取交易日信息
+            response = self.quote_ctx.trading_days(market_enum, begin_date, end_date)
+            
+            logger.success(f"成功获取市场 {market} 的交易日信息")
+            logger.info(f"  交易日数量: {len(response.trading_days)}")
+            logger.info(f"  半日市数量: {len(response.half_trading_days)}")
+            
+            # 打印详细信息
+            if response.trading_days:
+                logger.info(f"  交易日: {response.trading_days[:5]}{'...' if len(response.trading_days) > 5 else ''}")
+            if response.half_trading_days:
+                logger.info(f"  半日市: {response.half_trading_days}")
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"获取市场交易日失败: {e}")
             raise e
     
     def get_stock_list(self) -> List[WatchlistSecurity]:
