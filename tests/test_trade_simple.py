@@ -6,7 +6,7 @@ import sys
 sys.path.append('.')
 
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from loguru import logger
 from awesometrader import Trader
@@ -236,7 +236,7 @@ class TestTradeModule(unittest.TestCase):
             logger.info("=" * 50)
             logger.info("测试1: 获取所有股票持仓")
             
-            all_positions = self.trader.get_stock_postions()
+            all_positions = self.trader.get_stock_positions()
             
             # 断言测试
             self.assertIsNotNone(all_positions, "股票持仓信息不应该为None")
@@ -320,7 +320,7 @@ class TestTradeModule(unittest.TestCase):
             if test_symbols:
                 logger.info(f"测试股票代码: {test_symbols}")
                 
-                specific_positions = self.trader.get_stock_postions(symbols=test_symbols)
+                specific_positions = self.trader.get_stock_positions(symbols=test_symbols)
                 
                 self.assertIsNotNone(specific_positions, "指定股票持仓信息不应该为None")
                 self.assertIsInstance(specific_positions, list, "指定股票持仓信息应该是列表类型")
@@ -345,7 +345,7 @@ class TestTradeModule(unittest.TestCase):
             logger.info("=" * 50)
             logger.info("测试3: 获取不存在的股票持仓")
             
-            non_exist_positions = self.trader.get_stock_postions(symbols=["TEST.XX"])
+            non_exist_positions = self.trader.get_stock_positions(symbols=["TEST.XX"])
             
             self.assertIsNotNone(non_exist_positions, "不存在股票的持仓信息不应该为None")
             self.assertIsInstance(non_exist_positions, list, "不存在股票的持仓信息应该是列表类型")
@@ -404,6 +404,164 @@ class TestTradeModule(unittest.TestCase):
             logger.error(f"测试失败: {e}")
             logger.warning("请确保配置了正确的LongPort API环境变量和交易权限")
             self.fail(f"获取股票持仓信息时发生异常: {e}")
+
+    def test_get_cash_flow(self):
+        logger.info("=== 测试获取资金流水信息 ===")
+
+        try:
+            # 测试1: 获取最近7天的资金流水
+            logger.info("=" * 50)
+            logger.info("测试1: 获取最近7天的资金流水")
+
+            end_time = datetime.now()
+            start_time = end_time - timedelta(days=7)
+
+            logger.info(f"查询时间范围: {start_time.strftime('%Y-%m-%d %H:%M:%S')} 至 {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
+            cash_flows = self.trader.get_cash_flow(
+                start_at=start_time,
+                end_at=end_time
+            )
+
+            # 断言测试
+            self.assertIsNotNone(cash_flows, "资金流水信息不应该为None")
+            self.assertIsInstance(cash_flows, list, "资金流水信息应该是列表类型")
+
+            if len(cash_flows) > 0:
+                logger.info(f"✓ 成功获取资金流水信息，共{len(cash_flows)}条记录")
+
+                # 验证资金流水数据结构
+                for i, flow in enumerate(cash_flows[:5]):  # 只验证前5条
+                    logger.info(f"流水记录 {i+1}:")
+
+                    # 验证必要的属性
+                    self.assertTrue(hasattr(flow, 'transaction_flow_name'), f"第{i+1}条流水应该有transaction_flow_name属性")
+                    self.assertTrue(hasattr(flow, 'direction'), f"第{i+1}条流水应该有direction属性")
+                    self.assertTrue(hasattr(flow, 'business_type'), f"第{i+1}条流水应该有business_type属性")
+                    self.assertTrue(hasattr(flow, 'balance'), f"第{i+1}条流水应该有balance属性")
+                    self.assertTrue(hasattr(flow, 'currency'), f"第{i+1}条流水应该有currency属性")
+                    self.assertTrue(hasattr(flow, 'business_time'), f"第{i+1}条流水应该有business_time属性")
+
+                    # 验证数据类型
+                    self.assertIsInstance(flow.transaction_flow_name, str, f"第{i+1}条流水的transaction_flow_name应该是字符串")
+                    self.assertIsInstance(flow.direction, int, f"第{i+1}条流水的direction应该是整数")
+                    self.assertIsInstance(flow.business_type, int, f"第{i+1}条流水的business_type应该是整数")
+                    self.assertIsInstance(flow.balance, Decimal, f"第{i+1}条流水的balance应该是Decimal类型")
+                    self.assertIsInstance(flow.currency, str, f"第{i+1}条流水的currency应该是字符串")
+                    self.assertIsInstance(flow.business_time, int, f"第{i+1}条流水的business_time应该是整数")
+
+                    # 基础信息
+                    direction_desc = "流入" if flow.direction == 2 else "流出"
+                    business_type_desc = {1: "现金", 2: "股票", 3: "基金"}.get(flow.business_type, f"未知({flow.business_type})")
+
+                    logger.info(f"  流水名称: {flow.transaction_flow_name}")
+                    logger.info(f"  方向: {direction_desc} ({flow.direction})")
+                    logger.info(f"  资金类别: {business_type_desc}")
+                    logger.info(f"  金额: {flow.balance} {flow.currency}")
+                    logger.info(f"  时间: {datetime.fromtimestamp(flow.business_time).strftime('%Y-%m-%d %H:%M:%S')}")
+
+                    # 可选字段
+                    if hasattr(flow, 'symbol') and flow.symbol:
+                        logger.info(f"  关联股票: {flow.symbol}")
+                    if hasattr(flow, 'description') and flow.description:
+                        logger.info(f"  说明: {flow.description}")
+
+                    logger.info("-" * 30)
+
+                if len(cash_flows) > 5:
+                    logger.info(f"... 还有 {len(cash_flows) - 5} 条流水记录")
+            else:
+                logger.info("最近7天无资金流水记录")
+
+            # 测试2: 获取指定类别的资金流水（现金类）
+            logger.info("=" * 50)
+            logger.info("测试2: 获取现金类资金流水")
+
+            cash_flows_cash = self.trader.get_cash_flow(
+                start_at=start_time,
+                end_at=end_time,
+                business_type=1  # 1-现金
+            )
+
+            self.assertIsNotNone(cash_flows_cash, "现金类资金流水信息不应该为None")
+            self.assertIsInstance(cash_flows_cash, list, "现金类资金流水信息应该是列表类型")
+
+            if len(cash_flows_cash) > 0:
+                logger.info(f"✓ 成功获取现金类资金流水，共{len(cash_flows_cash)}条记录")
+
+                # 验证所有返回的流水都是现金类
+                for flow in cash_flows_cash:
+                    self.assertEqual(flow.business_type, 1, "筛选的资金流水类别应该是现金")
+
+                # 显示前3条现金流水详情
+                for i, flow in enumerate(cash_flows_cash[:3]):
+                    direction_desc = "流入" if flow.direction == 2 else "流出"
+                    logger.info(f"{i+1}. {flow.transaction_flow_name}: {flow.balance} {flow.currency} ({direction_desc})")
+            else:
+                logger.info("无现金类资金流水记录")
+
+            # 测试3: 测试分页功能
+            logger.info("=" * 50)
+            logger.info("测试3: 测试分页功能（每页最多10条）")
+
+            cash_flows_page1 = self.trader.get_cash_flow(
+                start_at=start_time,
+                end_at=end_time,
+                page=1,
+                size=10
+            )
+
+            self.assertIsNotNone(cash_flows_page1, "分页查询结果不应该为None")
+            self.assertIsInstance(cash_flows_page1, list, "分页查询结果应该是列表类型")
+
+            if len(cash_flows_page1) > 0:
+                logger.info(f"✓ 第1页返回{len(cash_flows_page1)}条记录")
+                self.assertLessEqual(len(cash_flows_page1), 10, "每页记录数应该不超过10条")
+            else:
+                logger.info("第1页无记录")
+
+            # 汇总测试结果
+            logger.info("=" * 50)
+            logger.info("资金流水汇总:")
+
+            if cash_flows:
+                # 统计流水信息
+                inflow_count = sum(1 for flow in cash_flows if flow.direction == 2)
+                outflow_count = sum(1 for flow in cash_flows if flow.direction == 1)
+
+                logger.info(f"总流水记录数: {len(cash_flows)}")
+                logger.info(f"资金流入记录: {inflow_count} 条")
+                logger.info(f"资金流出记录: {outflow_count} 条")
+
+                # 统计币种分布
+                currency_stats = {}
+                for flow in cash_flows:
+                    currency = flow.currency
+                    currency_stats[currency] = currency_stats.get(currency, 0) + 1
+
+                logger.info("币种分布:")
+                for currency, count in currency_stats.items():
+                    logger.info(f"  {currency}: {count} 条流水")
+
+                # 统计资金类别分布
+                business_type_stats = {}
+                business_type_desc = {1: "现金", 2: "股票", 3: "基金"}
+                for flow in cash_flows:
+                    business_type = business_type_desc.get(flow.business_type, f"其他({flow.business_type})")
+                    business_type_stats[business_type] = business_type_stats.get(business_type, 0) + 1
+
+                logger.info("资金类别分布:")
+                for business_type, count in business_type_stats.items():
+                    logger.info(f"  {business_type}: {count} 条流水")
+            else:
+                logger.info("查询时间范围内无资金流水记录")
+
+            logger.success("=== 资金流水信息获取测试完成 ===")
+
+        except Exception as e:
+            logger.error(f"测试失败: {e}")
+            logger.warning("请确保配置了正确的LongPort API环境变量和交易权限")
+            self.fail(f"获取资金流水信息时发生异常: {e}")
 
     def test_order_operations(self):
         """测试订单操作的完整生命周期"""
@@ -581,6 +739,7 @@ if __name__ == "__main__":
     # 添加测试用例
     suite.addTest(TestTradeModule('test_get_account_balance'))
     suite.addTest(TestTradeModule('test_get_stock_positions'))
+    suite.addTest(TestTradeModule('test_get_cash_flow'))
     suite.addTest(TestTradeModule('test_order_operations'))
     
     # 运行测试

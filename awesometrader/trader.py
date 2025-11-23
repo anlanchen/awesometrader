@@ -1,12 +1,12 @@
 from loguru import logger
-from datetime import datetime, date
+from datetime import date, datetime
 from typing import Optional, List, Any
 from decimal import Decimal
 from longport.openapi import (
-    TradeContext, 
-    Config, 
-    OrderType, 
-    OrderSide, 
+    TradeContext,
+    Config,
+    OrderType,
+    OrderSide,
     TimeInForceType,
     OutsideRTH,
     OrderDetail,
@@ -47,7 +47,7 @@ class Trader:
             logger.error(f"获取账户资金信息失败: {str(e)}")
             return []
         
-    def get_stock_postions(self, symbols: Optional[List[str]] = None) -> List[Any]:
+    def get_stock_positions(self, symbols: Optional[List[str]] = None) -> List[Any]:
         """
         获取股票持仓信息
         
@@ -87,7 +87,62 @@ class Trader:
         except Exception as e:
             logger.error(f"获取股票持仓信息失败: {str(e)}")
             return []
-    
+
+    def get_cash_flow(self,
+                     start_at: datetime,
+                     end_at: datetime,
+                     business_type: Optional[int] = None,
+                     symbol: Optional[str] = None,
+                     page: Optional[int] = None,
+                     size: Optional[int] = None) -> List[Any]:
+        """
+        获取资金流水信息
+
+        Args:
+            start_at: 开始时间
+            end_at: 结束时间
+            business_type: 可选，资金类别，1-现金，2-股票，3-基金
+            symbol: 可选，股票代码，使用 ticker.region 格式，例如：AAPL.US
+            page: 可选，起始页，默认1，最小值1
+            size: 可选，每页数量，默认50，范围1-10000
+
+        Returns:
+            List[Any]: 资金流水列表，包含交易流水名称、方向、金额、币种、时间等信息
+        """
+        try:
+            logger.info(f"开始获取资金流水信息，时间范围: {start_at} 至 {end_at}")
+            if business_type:
+                business_type_desc = {1: "现金", 2: "股票", 3: "基金"}
+                logger.info(f"资金类别筛选: {business_type_desc.get(business_type, business_type)}")
+            if symbol:
+                logger.info(f"股票代码筛选: {symbol}")
+
+            # 调用LongPort API获取资金流水
+            resp = self.trade_ctx.cash_flow(
+                start_at=start_at,
+                end_at=end_at,
+                business_type=business_type,
+                symbol=symbol,
+                page=page,
+                size=size
+            )
+
+            # 返回的是CashFlow对象，包含list字段
+            cash_flows = resp.list if resp and hasattr(resp, 'list') else []
+            logger.info(f"成功获取资金流水信息，共{len(cash_flows)}条记录")
+
+            # 打印资金流水摘要
+            if cash_flows:
+                inflow_count = sum(1 for flow in cash_flows if hasattr(flow, 'direction') and flow.direction == 2)
+                outflow_count = sum(1 for flow in cash_flows if hasattr(flow, 'direction') and flow.direction == 1)
+                logger.info(f"资金流入: {inflow_count}条, 资金流出: {outflow_count}条")
+
+            return cash_flows
+
+        except Exception as e:
+            logger.error(f"获取资金流水信息失败: {str(e)}")
+            return []
+
     def submit_order(self,
                     symbol: str,
                     order_type: OrderType,

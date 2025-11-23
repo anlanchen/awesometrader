@@ -200,7 +200,7 @@ class AccountReporter:
             # 获取账户余额信息
             balances = self.trader.get_account_balance(currency='USD')
             # 获取持仓信息
-            positions = self.trader.get_stock_postions()
+            positions = self.trader.get_stock_positions()
             
             if not balances:
                 logger.error("无法获取账户余额信息")
@@ -384,7 +384,7 @@ class AccountReporter:
             List[str]: 市场列表，如 ['US', 'HK']
         """
         try:
-            positions = self.trader.get_stock_postions()
+            positions = self.trader.get_stock_positions()
             markets = set()
             
             if positions:
