@@ -28,31 +28,97 @@
 - **数据验证**：数据完整性检查和异常处理
 - **环境配置**：灵活的环境变量配置
 
+## 🚀 快速开始
+
+### 环境要求
+- Python 3.10+
+- Make (可选，用于便捷安装)
+
+### 安装步骤
+
+推荐使用 `make` 命令进行一键安装（自动配置 uv 包管理器和虚拟环境）：
+
+```bash
+make install
+```
+
+或者手动安装依赖：
+
+```bash
+# 安装 uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 创建并激活虚拟环境
+uv venv --python 3.10
+source .venv/bin/activate
+
+# 同步依赖
+uv sync
+```
+
+## 📖 使用指南
+
+### 1. 数据收集
+运行数据收集器，自动从长桥更新股票池数据：
+
+```bash
+python run_collector.py
+```
+
+### 2. 策略回测
+编写或选择策略后，运行回测脚本（示例）：
+
+```bash
+# 运行策略回测示例（需自行编写或调整具体脚本）
+python strategies/sma_cross.py
+```
+
+### 3. 实盘/模拟交易
+配置好长桥 API 密钥后，启动交易程序：
+
+```bash
+python run_trader.py
+```
+
+### 4. 消息通知
+测试钉钉消息通知功能：
+
+```bash
+python run_messager.py
+```
+
 ## 📁 项目结构
 
-```
+```text
 awesometrader/
-├── awesometrader/             # 核心框架模块
-│   ├── __init__.py            # 模块初始化，导出主要类
-│   ├── datainterface.py       # 数据接口模块，提供数据读取、保存、验证功能
-│   ├── collector.py           # 数据收集模块，基于长桥OpenAPI获取实时和历史数据
-│   ├── trader.py              # 交易模块，提供完整的交易功能接口
-│   └── utils.py               # 通用工具类，提供路径管理和项目配置功能
-├── data_collector.py          # 数据收集器主程序，提供自动化数据收集和定时更新
+├── awesometrader/             # 核心框架包
+│   ├── __init__.py            # 导出主要类 (DataInterface, LongPortAPI, etc.)
+│   ├── collector/             # 数据收集模块
+│   │   └── longport_api.py    # 长桥OpenAPI数据接口实现
+│   ├── data/                  # 数据管理模块
+│   │   └── data_interface.py  # 数据读写、验证接口
+│   ├── notify/                # 消息通知模块
+│   │   └── dingtalk_messager.py # 钉钉机器人通知实现
+│   ├── trader/                # 交易执行模块
+│   │   └── longport_trader_api.py # 长桥交易接口实现
+│   ├── utils/                 # 通用工具模块
+│   │   └── utils.py           # 路径管理、配置加载等工具
+│   └── tests/                 # 单元测试
 ├── strategies/                # 策略实现目录
 │   ├── sma.py                 # 简单移动平均策略
 │   ├── sma_cross.py           # 双均线交叉策略
 │   ├── macd.py                # MACD策略
 │   ├── mfi.py                 # 资金流量指标策略
 │   └── multi_factor.py        # 多因子综合策略
-├── tests/                     # 测试用例目录
-│   ├── test_data_simple.py    # 数据模块测试
-│   └── test_trade_simple.py   # 交易模块测试
-├── caches/                    # 数据缓存目录
-├── results/                   # 回测结果目录
-├── logs/                      # 日志目录
+├── caches/                    # 数据缓存目录 (CSV/Parquet)
+├── results/                   # 回测结果目录 (HTML报告/CSV统计)
+├── logs/                      # 运行日志目录
 ├── docs/                      # 文档目录
-├── pyproject.toml             # 项目配置和依赖管理文件
+├── run_collector.py           # 数据收集启动脚本
+├── run_trader.py              # 交易程序启动脚本
+├── run_messager.py            # 消息测试启动脚本
+├── pyproject.toml             # 项目配置和依赖管理
+├── Makefile                   # 项目管理命令
 └── README.md                  # 项目说明文档
 ```
 
@@ -60,13 +126,15 @@ awesometrader/
 
 ### 核心技术栈
 - **Python 3.10+**：核心开发语言
-- **长桥OpenAPI**：数据源和交易接口
-- **backtesting.py**：专业回测引擎
-- **TA-Lib**：技术分析指标库
-- **pandas**：数据处理和分析
-- **loguru**：日志管理
+- **长桥OpenAPI (longport)**：官方 SDK，提供行情和交易接口
+- **backtesting.py**：轻量级、功能强大的回测引擎
+- **TA-Lib**：金融市场数据的技术分析库
+- **pandas**：高性能数据处理和分析
+- **uv**：极速 Python 包管理器和项目管理工具
 
 ### 依赖库
+主要依赖项定义在 `pyproject.toml` 中，通过 `uv` 进行管理。
+
 ```toml
 dependencies = [
     "pandas",           # 数据处理
