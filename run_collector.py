@@ -17,8 +17,8 @@ from typing import List, Dict
 from loguru import logger
 from dotenv import load_dotenv
 from longport.openapi import Period, AdjustType
-from awesometrader.collector import Collector
-from awesometrader.datainterface import DataInterface
+from awesometrader.collector import LongPortAPI
+from awesometrader.data import DataInterface
 
 
 class CollectorMain:
@@ -27,7 +27,7 @@ class CollectorMain:
         # 加载环境变量文件
         load_dotenv()
         
-        self.collector = Collector()
+        self.collector = LongPortAPI()
         self.data_interface = DataInterface()
         
         # 从环境变量获取配置

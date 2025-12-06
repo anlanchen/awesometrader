@@ -11,10 +11,10 @@ AwesomeTrader is a comprehensive quantitative trading system built with Python, 
 ### Main Components
 
 - **`awesometrader/`** - Core framework modules (imported via `__init__.py`)
-  - `collector.py` - Data collection using LongPort OpenAPI (`Collector` class)
-  - `datainterface.py` - Data persistence and retrieval in CSV/Parquet formats (`DataInterface` class)
-  - `trader.py` - Trading execution and account management (`Trader` class)
-  - `messager.py` - DingTalk notification system (`Messager` class)
+  - `collector.py` - Data collection using LongPort OpenAPI (`LongPortAPI` class)
+  - `data/data_interface.py` - Data persistence and retrieval in CSV/Parquet formats (`DataInterface` class)
+  - `trader/longport_trader_api.py` - Trading execution and account management (`LongPortTraderAPI` class)
+  - `notify/dingtalk_messager.py` - DingTalk notification system (`DingTalkMessager` class)
   - `utils.py` - Common utilities (`Utils` class with project root and cache directory helpers)
 
 - **`strategies/`** - Trading strategy implementations
@@ -77,7 +77,7 @@ python -m pytest tests/test_trade_simple.py::TestTradeModule::test_get_cash_flow
 
 ### Data Flow
 1. **Collection**: LongPort API → `collector.py` → cached CSV/Parquet files
-2. **Processing**: `datainterface.py` handles data validation and persistence
+2. **Processing**: `data/data_interface.py` handles data validation and persistence
 3. **Strategy**: Backtesting framework processes historical data
 4. **Trading**: `trader.py` executes orders via LongPort API
 5. **Monitoring**: `messager.py` sends DingTalk notifications
@@ -130,7 +130,7 @@ When adding new trading API methods to `trader.py`:
 5. Access price data via `self.data` (OHLCV)
 
 ### Data Collection Workflow
-The `Collector` class orchestrates multi-market data collection:
+The `LongPortAPI` class orchestrates multi-market data collection:
 1. Sync watchlist from LongPort: `sync_watchlist_to_stock_pool()`
 2. Collect historical data: `collect_historical_data()`
 3. Update latest data: `update_latest_data_by_market()`
@@ -169,13 +169,13 @@ Package management uses `uv` (modern Python package manager).
 - Data files are automatically organized: `/caches/{SYMBOL}/{period}.csv`
 
 ### Code Patterns
-- Module imports: `from awesometrader import Collector, DataInterface, Trader, Messager, Utils`
+- Module imports: `from awesometrader import LongPortAPI, DataInterface, LongPortTraderAPI, DingTalkMessager, Utils`
 - All core classes initialize from environment variables via `Config.from_env()` (LongPort)
 - Project root detection: `Utils.get_project_root()` (searches for `pyproject.toml`, `.env`, or `uv.lock`)
 - Cache directory: `Utils.get_cache_dir()` (creates `/caches` if not exists)
 
 ### Trading
-- `Trader` class provides methods for: account balance, stock positions, cash flow, order operations
+- `LongPortTraderAPI` class provides methods for: account balance, stock positions, cash flow, order operations
 - Order lifecycle: submit → get_detail/get_today_orders → replace (modify) → cancel
 - Supports multiple order types: LO (limit), MO (market), conditional orders
 - Both paper trading and live trading modes supported (configured via LongPort API credentials)

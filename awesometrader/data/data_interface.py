@@ -4,7 +4,7 @@ from typing import List, Dict, Tuple
 from loguru import logger
 from datetime import datetime
 from longport.openapi import Period
-from .utils import Utils
+from ..utils import Utils
 
 class DataInterface:
     def __init__(self):
@@ -375,3 +375,4 @@ class DataInterface:
             logger.success(f'转换完成: {output_file}')
             return True
         return False
+

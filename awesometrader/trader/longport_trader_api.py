@@ -14,9 +14,9 @@ from longport.openapi import (
     Market
 )
 
-class Trader:
+class LongPortTraderAPI:
     def __init__(self):
-        """初始化Trader类"""
+        """初始化LongPortTraderAPI类"""
         config = Config.from_env()
         self.trade_ctx = TradeContext(config)
 
@@ -331,3 +331,4 @@ class Trader:
         except Exception as e:
             logger.error(f"获取当日订单失败: {str(e)}")
             raise
+

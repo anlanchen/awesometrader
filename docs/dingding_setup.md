@@ -47,13 +47,13 @@ DINGDING_SECRET=YOUR_SECRET_KEY  # 如果启用了加签功能
 ### 基础用法
 
 ```python
-from awesometrader.messager import Messager
+from awesometrader.notify import DingTalkMessager
 
 # 初始化（从环境变量读取配置）
 import os
 webhook = os.getenv('DINGDING_WEBHOOK')
 secret = os.getenv('DINGDING_SECRET')
-messager = Messager(dingding_webhook=webhook, dingding_secret=secret)
+messager = DingTalkMessager(dingtalk_webhook=webhook, dingtalk_secret=secret)
 
 # 发送简单文本消息
 messager.send_dingding_text("交易系统启动成功！")

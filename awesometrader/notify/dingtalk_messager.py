@@ -11,10 +11,10 @@ import base64
 import urllib.parse
 
 
-class Messager:
+class DingTalkMessager:
     def __init__(self, dingtalk_webhook: Optional[str] = None, dingtalk_secret: Optional[str] = None):
         """
-        初始化Messager类
+        初始化DingTalkMessager类
         
         Args:
             dingtalk_webhook: 钉钉机器人webhook地址
@@ -234,3 +234,4 @@ class Messager:
             text=markdown_text,
             at_user_ids=at_user_ids
         )
+

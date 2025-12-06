@@ -1,14 +1,16 @@
 """
-测试Messager类的消息发送功能 - 简单真实接口测试
+测试DingTalkMessager类的消息发送功能 - 简单真实接口测试
 """
 
 import sys
-sys.path.append('.')
+import os
+# 添加项目根目录到Python路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import unittest
 from datetime import datetime, date
 from loguru import logger
-from awesometrader.messager import Messager
+from awesometrader.notify import DingTalkMessager
 import time
 
 
@@ -18,7 +20,7 @@ class TestMessageModule(unittest.TestCase):
         # 初始化消息接口
         self.webhook_url = "https://oapi.dingtalk.com/robot/send?access_token=3fede205bc3f924ee019abd045523bbccd75009b0bd32e976e1e86a51108edca"
         self.secret = "SEC38b3260cdbd3ec2ddd153cb1c80ed8f73aedcfc801c907e5d86a1779d9a119eb"
-        self.messager = Messager(dingtalk_webhook=self.webhook_url, dingtalk_secret=self.secret)
+        self.messager = DingTalkMessager(dingtalk_webhook=self.webhook_url, dingtalk_secret=self.secret)
         
     def tearDown(self):
         """每个测试方法之后运行"""

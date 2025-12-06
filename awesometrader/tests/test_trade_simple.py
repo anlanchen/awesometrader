@@ -1,22 +1,24 @@
 """
-测试Trader类的交易相关功能
+测试LongPortTraderAPI类的交易相关功能
 """
 
 import sys
-sys.path.append('.')
+import os
+# 添加项目根目录到Python路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import unittest
 from datetime import datetime, timedelta
 from decimal import Decimal
 from loguru import logger
-from awesometrader import Trader
+from awesometrader import LongPortTraderAPI
 from longport.openapi import OrderType, OrderSide, TimeInForceType, OrderStatus, Market
 
 class TestTradeModule(unittest.TestCase):
     def setUp(self):
         """每个测试方法之前运行"""
         # 初始化交易接口
-        self.trader = Trader()
+        self.trader = LongPortTraderAPI()
         
     def tearDown(self):
         """每个测试方法之后运行"""
