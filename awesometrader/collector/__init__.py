@@ -1,1 +1,1 @@
-from .longport_api import LongPortAPI
+from .longport_quota_api import LongPortQuotaAPI

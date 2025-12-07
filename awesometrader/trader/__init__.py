@@ -1,2 +1,1 @@
-from .longport_trader_api import LongPortTraderAPI
-
+from .longport_trade_api import LongPortTradeAPI

@@ -5,7 +5,7 @@
 import sys
 import os
 # 添加项目根目录到Python路径
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import unittest
 import pandas as pd
@@ -13,7 +13,7 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime, time
 from loguru import logger
-from awesometrader import DataInterface, LongPortAPI
+from awesometrader import DataInterface, LongPortQuotaAPI
 from longport.openapi import Period, AdjustType
 
 class TestDataModule(unittest.TestCase):
@@ -21,7 +21,7 @@ class TestDataModule(unittest.TestCase):
         """每个测试方法之前运行"""
         # 初始化数据接口
         self.data_interface = DataInterface()
-        self.collector = LongPortAPI()
+        self.collector = LongPortQuotaAPI()
         
     def tearDown(self):
         """每个测试方法之后运行"""

@@ -14,9 +14,9 @@ from longport.openapi import (
     Market
 )
 
-class LongPortTraderAPI:
+class LongPortTradeAPI:
     def __init__(self):
-        """初始化LongPortTraderAPI类"""
+        """初始化LongPortTradeAPI类"""
         config = Config.from_env()
         self.trade_ctx = TradeContext(config)
 

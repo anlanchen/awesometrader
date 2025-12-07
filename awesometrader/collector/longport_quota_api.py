@@ -5,9 +5,9 @@ from datetime import datetime, date
 from longport.openapi import Period, AdjustType, TradeSessions, CalcIndex, Market, MarketTradingDays
 from longport.openapi import QuoteContext, Config, MarketTradingSession, SecurityStaticInfo, SecurityQuote, SecurityCalcIndex, WatchlistSecurity, StrikePriceInfo, OptionQuote
 
-class LongPortAPI:
+class LongPortQuotaAPI:
     def __init__(self):
-        """初始化LongPortAPI类"""
+        """初始化LongPortQuotaAPI类"""
         config = Config.from_env()
         self.quote_ctx = QuoteContext(config)
 

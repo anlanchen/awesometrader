@@ -10,16 +10,16 @@ AwesomeTrader Core Module
 
 # 导入主要的数据和工具模块
 from .data import DataInterface
-from .collector import LongPortAPI
-from .trader import LongPortTraderAPI
+from .collector import LongPortQuotaAPI
+from .trader import LongPortTradeAPI
 from .notify import DingTalkMessager
 from .utils import Utils
 
 __version__ = "0.1.0"
 __all__ = [
     'DataInterface', 
-    'LongPortAPI', 
-    'LongPortTraderAPI',
+    'LongPortQuotaAPI', 
+    'LongPortTradeAPI',
     'DingTalkMessager',
     'Utils'
 ]
