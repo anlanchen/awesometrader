@@ -9,7 +9,6 @@
 4. 查看交易时段
 """
 
-import os
 import sys
 import argparse
 import time
@@ -21,15 +20,15 @@ from longport.openapi import Period, AdjustType
 from awesometrader.collector import LongPortQuotaAPI
 from awesometrader.data import DataInterface
 
-class CollectorCLI:
+class LongPortQuotaCLI:
     def __init__(self):
         """初始化数据收集器"""
         self.collector = LongPortQuotaAPI()
         self.data_interface = DataInterface()
         
-        # 从环境变量获取配置
-        self.start_date_str = os.getenv('START_DATE', '2020-01-01')
-        self.stock_pool_file = os.getenv('STOCK_POOL_FILE', 'stock_pool.csv')
+        # 配置参数
+        self.start_date_str = '2020-01-01'
+        self.stock_pool_file = 'stock_pool.csv'
         
         # 市场时区映射
         self.market_timezones = {
@@ -264,7 +263,7 @@ def main():
         sys.exit(0)
 
     # Initialize CLI
-    cli = CollectorCLI()
+    cli = LongPortQuotaCLI()
 
     try:
         if args.command == "sync_watchlist":
