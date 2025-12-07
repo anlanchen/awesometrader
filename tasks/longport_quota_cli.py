@@ -33,14 +33,6 @@ class LongPortQuotaCLI:
         # 配置参数
         self.start_date_str = '2020-01-01'
         self.stock_pool_file = 'stock_pool.csv'
-        
-        # 市场时区映射
-        self.market_timezones = {
-            'US': pytz.timezone('America/New_York'),  # 美东时间
-            'HK': pytz.timezone('Asia/Hong_Kong'),    # 港股时间
-            'CN': pytz.timezone('Asia/Shanghai'),     # A股时间
-            'SG': pytz.timezone('Asia/Singapore'),    # 新加坡时间
-        }
 
     def load_stock_pool(self) -> List[str]:
         """加载股票池"""
@@ -94,41 +86,34 @@ class LongPortQuotaCLI:
             
             stock_codes = [security.symbol for security in watchlist_securities]
             logger.info(f"获取到 {len(stock_codes)} 只自选股")
-            
+
             # 获取股票基础信息以获取中文名称
             logger.info("正在获取股票基础信息（包括中文名称）...")
             stock_info_dict = self.collector.get_stock_basic_info(stock_codes)
-            
-            stock_pool_path = self.data_interface.cache_dir / self.stock_pool_file
-            
-            # 写入新的股票池文件
-            import csv
-            with open(stock_pool_path, 'w', newline='', encoding='utf-8') as csvfile:
-                writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC)  # 使用引号保护所有字段
-                writer.writerow(['stock_code', 'stock_name', 'name_cn', 'name_en'])
-                
-                for security in watchlist_securities:
-                    stock_code = str(security.symbol)
-                    
-                    # 优先使用中文名称，如果没有则使用英文名称
-                    name_cn = ''
-                    name_en = str(security.name)
-                    
-                    if stock_code in stock_info_dict:
-                        info = stock_info_dict[stock_code]
-                        name_cn = str(info.name_cn) if hasattr(info, 'name_cn') and info.name_cn else ''
-                        name_en = str(info.name_en) if hasattr(info, 'name_en') and info.name_en else name_en
-                    
+
+            # 准备股票数据
+            stock_data = []
+            for security in watchlist_securities:
+                stock_code = str(security.symbol)
+                stock_name = str(security.name)
+                if stock_code in stock_info_dict:
+                    info = stock_info_dict[stock_code]
                     # stock_name列优先显示中文，如果没有中文则显示英文
-                    stock_name = name_cn if name_cn else name_en
-                    
-                    # 确保股票代码作为字符串写入，保留前导0
-                    writer.writerow([stock_code, stock_name, name_cn, name_en])
-                    
-                    logger.info(f"  {stock_code}: {stock_name}")
+                    stock_name = str(info.name_cn) if hasattr(info, 'name_cn') and info.name_cn else stock_name
+
+                # 将原始信息传入，具体使用哪个名称由接口决定
+                stock_data.append({
+                    'stock_code': stock_code,
+                    'stock_name': stock_name
+                })
             
-            logger.success(f"股票池文件更新成功: {stock_pool_path}")
-            logger.info(f"文件包含列: stock_code, stock_name, name_cn, name_en")
+            # 调用 DataInterface 的 save_stock_pool 接口保存股票池
+            success = self.data_interface.save_stock_pool(self.stock_pool_file, stock_data)
+            if not success:
+                logger.error("股票池文件保存失败")
+                sys.exit(1)
+            
+            logger.info(f"文件包含列: stock_code, stock_name")
             
         except Exception as e:
             logger.error(f"同步自选股到股票池失败: {e}")

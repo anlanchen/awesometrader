@@ -12,32 +12,6 @@ tasks:
     args:
       - "sync_watchlist"
     enabled: true
-    
-  - name: "美股盘后数据更新"
-    script: "tasks/longport_quota_cli.py"
-    trigger: "cron"
-    hour: 16
-    minute: 30
-    timezone: "America/New_York"
-    trigger_args:
-      misfire_grace_time: 3600
-    args: # 传递给脚本的参数
-      - "update_latest"
-      - "--market"
-      - "US"
-    enabled: true
-
-  - name: "港股盘后数据更新"
-    script: "tasks/longport_quota_cli.py"
-    trigger: "cron"
-    hour: 16
-    minute: 30
-    timezone: "Asia/Hong_Kong"
-    args:
-      - "update_latest"
-      - "--market"
-      - "HK"
-    enabled: true
 
   - name: "美股盘后账户报告"
     script: "tasks/run_messager.py"

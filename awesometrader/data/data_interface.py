@@ -94,7 +94,7 @@ class DataInterface:
         except Exception as e:
             logger.error(f"保存文件失败: {e}")
             return False
-    
+
     # ==================== 股票池相关 ====================
     
     def load_stock_pool(self, stock_list_file: str) -> List[str]:
@@ -128,43 +128,41 @@ class DataInterface:
         except Exception as e:
             logger.error(f"加载股票池失败: {e}")
             return []
-
-    def load_stock_pool_with_names(self, stock_list_file: str) -> List[Dict[str, str]]:
+    
+    def save_stock_pool(self, stock_list_file: str, stock_data: List[Dict[str, str]]) -> bool:
         """
-        从文件中加载股票池（包含名称信息）
+        保存股票池到文件
         :param stock_list_file: 股票列表文件路径
-        :return: 包含股票代码和名称的字典列表，格式：[{'code': 'AAPL.US', 'name': '苹果公司'}, ...]
+        :param stock_data: 股票数据列表，每个元素是一个字典
+                          必须包含：stock_code
+                          可选包含：stock_name
+        :return: 是否保存成功
         """
         try:
+            import csv
+            
             stock_pool_path = self.cache_dir / stock_list_file
-            if stock_pool_path.exists():
-                # 读取CSV时将股票代码列作为字符串类型，避免丢失前导0
-                df = pd.read_csv(stock_pool_path, dtype={'stock_code': str, 'code': str})
-                stocks_info = []
+            stock_pool_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # 写入股票池文件
+            with open(stock_pool_path, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC)  # 使用引号保护所有字段
+                # 只保留 stock_code 和 stock_name 两列
+                writer.writerow(['stock_code', 'stock_name'])
                 
-                # 检查是否有股票名称列
-                if 'stock_code' in df.columns and 'stock_name' in df.columns:
-                    for _, row in df.iterrows():
-                        if pd.notna(row['stock_code']) and str(row['stock_code']).strip():
-                            stock_info = {
-                                'code': str(row['stock_code']).strip(),
-                                'name': str(row['stock_name']).strip() if pd.notna(row['stock_name']) else ''
-                            }
-                            stocks_info.append(stock_info)
-                else:
-                    # 如果没有名称列，只返回代码
-                    stock_codes = self.load_stock_pool(stock_list_file)
-                    for code in stock_codes:
-                        stocks_info.append({'code': code, 'name': ''})
-                
-                logger.info(f"成功加载{len(stocks_info)}只股票的详细信息")
-                return stocks_info
-            else:
-                logger.warning(f"股票池文件不存在: {stock_pool_path}")
-                return []
+                for stock in stock_data:
+                    stock_code = str(stock.get('stock_code', ''))
+                    stock_name = str(stock.get('stock_name', '') or '')
+                    
+                    # 确保股票代码作为字符串写入，保留前导0
+                    writer.writerow([stock_code, stock_name])
+            
+            logger.success(f"股票池文件保存成功: {stock_pool_path}, 共 {len(stock_data)} 只股票")
+            return True
+            
         except Exception as e:
-            logger.error(f"加载股票池详细信息失败: {e}")
-            return []
+            logger.error(f"保存股票池失败: {e}")
+            return False
     
     # ==================== 股票数据操作 ====================
     

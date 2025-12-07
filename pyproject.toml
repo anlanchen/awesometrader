@@ -21,6 +21,7 @@ classifiers = [
 keywords = ["trading", "finance", "data", "backtesting", "stocks"]
 
 dependencies = [
+    "pytest",
     "pandas",
     "numpy",
     "ta-lib",

@@ -1,0 +1,164 @@
+{
+  "currency": "CNH",
+  "total_assets": 1621336.5216312055,
+  "total_pnl": -178663.47836879455,
+  "total_pnl_pct": -0.09925748798266364,
+  "total_market_value": 1683970.2772404898,
+  "total_cash_balance": -220189.65,
+  "total_adjustment": 157555.89439071564,
+  "adjustment_details": [
+    {
+      "currency": "USD",
+      "amount": -11940.0,
+      "converted_amount": -84680.85106382979
+    },
+    {
+      "currency": "HKD",
+      "amount": 266460.42,
+      "converted_amount": 242236.74545454542
+    }
+  ],
+  "leverage_ratio": 1.0386309410622967,
+  "balances": [
+    {
+      "currency": "CNH",
+      "total_cash": "-220189.65",
+      "max_finance_amount": "908031.00",
+      "remaining_finance_amount": "0.00",
+      "risk_level": 1,
+      "margin_call": "0",
+      "net_assets": "1463301.14",
+      "init_margin": "1021090.75",
+      "maintenance_margin": "896324.02",
+      "buy_power": "441883.66",
+      "cash_infos": [
+        {
+          "withdraw_cash": "0.01",
+          "available_cash": "0.01",
+          "frozen_cash": "0.00",
+          "settling_cash": "0.00",
+          "currency": "USD"
+        },
+        {
+          "withdraw_cash": "-285160.23",
+          "available_cash": "-242851.36",
+          "frozen_cash": "359.82",
+          "settling_cash": "25950.92",
+          "currency": "HKD"
+        }
+      ]
+    }
+  ],
+  "position_details": [
+    {
+      "symbol": "PDD.US",
+      "name": "拼多多",
+      "quantity": 100,
+      "original_currency": "USD",
+      "current_price": 117.62,
+      "cost_price": 126.05,
+      "market_value": 11762.0,
+      "converted_market_value": 83418.43971631206,
+      "pnl": -842.9999999999993,
+      "converted_pnl": -5978.723404255315,
+      "has_price_data": true
+    },
+    {
+      "symbol": "CRCL.US",
+      "name": "Circle",
+      "quantity": 1200,
+      "original_currency": "USD",
+      "current_price": 85.62,
+      "cost_price": 98.072,
+      "market_value": 102744.0,
+      "converted_market_value": 728680.8510638298,
+      "pnl": -14942.399999999998,
+      "converted_pnl": -105974.46808510637,
+      "has_price_data": true
+    },
+    {
+      "symbol": "BABA.US",
+      "name": "阿里巴巴",
+      "quantity": 150,
+      "original_currency": "USD",
+      "current_price": 158.32,
+      "cost_price": 164.029,
+      "market_value": 23748.0,
+      "converted_market_value": 168425.53191489363,
+      "pnl": -856.3500000000005,
+      "converted_pnl": -6073.404255319153,
+      "has_price_data": true
+    },
+    {
+      "symbol": "981.HK",
+      "name": "中芯国际",
+      "quantity": 8000,
+      "original_currency": "HKD",
+      "current_price": 69.75,
+      "cost_price": 72.997,
+      "market_value": 558000.0,
+      "converted_market_value": 507272.72727272724,
+      "pnl": -25976.0,
+      "converted_pnl": -23614.545454545452,
+      "has_price_data": true
+    },
+    {
+      "symbol": "2676.HK",
+      "name": "纳芯微",
+      "quantity": 800,
+      "original_currency": "HKD",
+      "current_price": 105.3,
+      "cost_price": 121.0,
+      "market_value": 84240.0,
+      "converted_market_value": 76581.81818181818,
+      "pnl": -12560.000000000002,
+      "converted_pnl": -11418.18181818182,
+      "has_price_data": true
+    },
+    {
+      "symbol": "2658.HK",
+      "name": "天域半导体",
+      "quantity": 800,
+      "original_currency": "HKD",
+      "current_price": 40.5,
+      "cost_price": 49.5,
+      "market_value": 32400.0,
+      "converted_market_value": 29454.545454545452,
+      "pnl": -7200.0,
+      "converted_pnl": -6545.454545454545,
+      "has_price_data": true
+    },
+    {
+      "symbol": "1211.HK",
+      "name": "比亚迪股份",
+      "quantity": 1000,
+      "original_currency": "HKD",
+      "current_price": 99.15,
+      "cost_price": 118.8,
+      "market_value": 99150.0,
+      "converted_market_value": 90136.36363636363,
+      "pnl": -19649.999999999993,
+      "converted_pnl": -17863.636363636357,
+      "has_price_data": true
+    },
+    {
+      "symbol": "CRCL260618C120000.US",
+      "name": "CRCL 260618 120 Call",
+      "quantity": -12,
+      "original_currency": "USD",
+      "current_price": 0.0,
+      "cost_price": 7.535,
+      "market_value": 0.0,
+      "converted_market_value": 0.0,
+      "pnl": 0.0,
+      "converted_pnl": 0.0,
+      "has_price_data": false
+    }
+  ],
+  "exchange_rates": {
+    "USD": 7.092198581560284,
+    "HKD": 0.9090909090909091,
+    "CNH": 1.0
+  },
+  "timestamp": "2025-12-08 01:18:31"
+}

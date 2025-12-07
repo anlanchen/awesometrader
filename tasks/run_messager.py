@@ -43,12 +43,6 @@ class AccountReporter:
         except Exception:
             self.user_timezone = pytz.timezone('Asia/Shanghai')
         
-        # 市场时区映射
-        self.market_timezones = {
-            'US': pytz.timezone('America/New_York'),  # 美东时间
-            'HK': pytz.timezone('Asia/Hong_Kong'),    # 港股时间
-        }
-        
         logger.info("账户报告器初始化完成")
     
     def is_trading_day(self, market: str) -> bool:

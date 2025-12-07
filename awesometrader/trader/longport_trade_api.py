@@ -11,7 +11,8 @@ from longport.openapi import (
     OutsideRTH,
     OrderDetail,
     OrderStatus,
-    Market
+    Market,
+    BalanceType
 )
 
 class LongPortTradeAPI:
@@ -91,7 +92,7 @@ class LongPortTradeAPI:
     def get_cash_flow(self,
                      start_at: datetime,
                      end_at: datetime,
-                     business_type: Optional[int] = None,
+                     business_type: Optional[BalanceType] = None,
                      symbol: Optional[str] = None,
                      page: Optional[int] = None,
                      size: Optional[int] = None) -> List[Any]:
@@ -101,7 +102,7 @@ class LongPortTradeAPI:
         Args:
             start_at: 开始时间
             end_at: 结束时间
-            business_type: 可选，资金类别，1-现金，2-股票，3-基金
+            business_type: 可选，资金类别，BalanceType.Cash-现金，BalanceType.Stock-股票，BalanceType.Fund-基金
             symbol: 可选，股票代码，使用 ticker.region 格式，例如：AAPL.US
             page: 可选，起始页，默认1，最小值1
             size: 可选，每页数量，默认50，范围1-10000
@@ -112,8 +113,7 @@ class LongPortTradeAPI:
         try:
             logger.info(f"开始获取资金流水信息，时间范围: {start_at} 至 {end_at}")
             if business_type:
-                business_type_desc = {1: "现金", 2: "股票", 3: "基金"}
-                logger.info(f"资金类别筛选: {business_type_desc.get(business_type, business_type)}")
+                logger.info(f"资金类别筛选: {business_type}")
             if symbol:
                 logger.info(f"股票代码筛选: {symbol}")
 

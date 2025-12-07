@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from loguru import logger
 from awesometrader import LongPortTradeAPI
-from longport.openapi import OrderType, OrderSide, TimeInForceType, OrderStatus, Market
+from longport.openapi import OrderType, OrderSide, TimeInForceType, OrderStatus, Market, BalanceType
 
 class TestTradeModule(unittest.TestCase):
     def setUp(self):
@@ -482,7 +482,7 @@ class TestTradeModule(unittest.TestCase):
             cash_flows_cash = self.trader.get_cash_flow(
                 start_at=start_time,
                 end_at=end_time,
-                business_type=1  # 1-现金
+                business_type=BalanceType.Cash  # 现金类型
             )
 
             self.assertIsNotNone(cash_flows_cash, "现金类资金流水信息不应该为None")
