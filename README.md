@@ -92,7 +92,7 @@ python run_messager.py
 ```text
 awesometrader/
 ├── awesometrader/             # 核心框架包
-│   ├── __init__.py            # 导出主要类 (DataInterface, LongPortAPI, etc.)
+│   ├── __init__.py            # 导出主要类 (DataInterface, LongPortQuotaAPI, etc.)
 │   ├── collector/             # 数据收集模块
 │   │   └── longport_api.py    # 长桥OpenAPI数据接口实现
 │   ├── data/                  # 数据管理模块

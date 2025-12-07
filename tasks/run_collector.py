@@ -18,13 +18,13 @@ from datetime import datetime
 from typing import List
 from loguru import logger
 from longport.openapi import Period, AdjustType
-from awesometrader.collector import LongPortAPI
+from awesometrader.collector import LongPortQuotaAPI
 from awesometrader.data import DataInterface
 
 class CollectorCLI:
     def __init__(self):
         """初始化数据收集器"""
-        self.collector = LongPortAPI()
+        self.collector = LongPortQuotaAPI()
         self.data_interface = DataInterface()
         
         # 从环境变量获取配置

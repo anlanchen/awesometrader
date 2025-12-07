@@ -1,5 +1,5 @@
 """
-测试DataInterface和LongPortAPI类的基本功能
+测试DataInterface和LongPortQuotaAPI类的基本功能
 """
 
 import sys
@@ -88,7 +88,7 @@ class TestDataModule(unittest.TestCase):
             
             logger.info(f"获取日期范围: {start_date.date()} 到 {end_date.date()}")
             
-            # 使用LongPortAPI获取真实数据
+            # 使用LongPortQuotaAPI获取真实数据
             daily_data = self.collector.get_stock_history(
                 stock_code=test_stock_code,
                 period=Period.Day,
@@ -364,7 +364,7 @@ class TestDataModule(unittest.TestCase):
             self.fail(f"获取自选股列表时发生异常: {e}")
 
     def test_get_stock_basic_info(self):
-        logger.info("=== 测试LongPortAPI获取股票基础信息 ===")
+        logger.info("=== 测试LongPortQuotaAPI获取股票基础信息 ===")
         
         # 直接通过接口获取股票池
         test_stocks = self.data_interface.load_stock_pool(stock_list_file="stock_pool.csv")

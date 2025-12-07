@@ -12,23 +12,23 @@ from loguru import logger
 # 添加项目根目录到Python路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from awesometrader import LongPortTraderAPI
+from awesometrader import LongPortTradeAPI
 from awesometrader.notify import DingTalkMessager
-from awesometrader.collector import LongPortAPI
+from awesometrader.collector import LongPortQuotaAPI
 
 class AccountReporter:
     """账户信息报告器"""
     
     def __init__(self):
         """初始化账户报告器"""
-        self.trader = LongPortTraderAPI()
+        self.trader = LongPortTradeAPI()
 
         self.webhook_url = "https://oapi.dingtalk.com/robot/send?access_token=56b1816700f3fd34ca58e1db36bcb23c8bd048745622a121c44b4ec1f805a3b8"
         self.secret = "SECc148e9dc5e5bc7914d332f5e5687ee000302a46f61f4df4045aabbbe17ba2e0a"
         self.messager = DingTalkMessager(dingtalk_webhook=self.webhook_url, dingtalk_secret=self.secret)
         
         # 初始化数据收集器（用于获取交易时段和股票报价）
-        self.collector = LongPortAPI()
+        self.collector = LongPortQuotaAPI()
         
         # 初始资金设定
         self.initial_capital = 100000.0  # 美元

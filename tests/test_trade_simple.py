@@ -1,5 +1,5 @@
 """
-测试LongPortTraderAPI类的交易相关功能
+测试LongPortTradeAPI类的交易相关功能
 """
 
 import sys
@@ -11,14 +11,14 @@ import unittest
 from datetime import datetime, timedelta
 from decimal import Decimal
 from loguru import logger
-from awesometrader import LongPortTraderAPI
+from awesometrader import LongPortTradeAPI
 from longport.openapi import OrderType, OrderSide, TimeInForceType, OrderStatus, Market
 
 class TestTradeModule(unittest.TestCase):
     def setUp(self):
         """每个测试方法之前运行"""
         # 初始化交易接口
-        self.trader = LongPortTraderAPI()
+        self.trader = LongPortTradeAPI()
         
     def tearDown(self):
         """每个测试方法之后运行"""
