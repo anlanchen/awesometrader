@@ -24,8 +24,10 @@ class DataInterface:
         :param file_format: 文件格式 ('csv' 或 'parquet')
         :return: 文件路径
         """
-        stock_dir = self.cache_dir / stock_code
-        stock_dir.mkdir(exist_ok=True)
+        # 将股票数据保存到 caches/stock/ 目录下
+        stock_base_dir = self.cache_dir / 'stock'
+        stock_dir = stock_base_dir / stock_code
+        stock_dir.mkdir(parents=True, exist_ok=True)
         
         # 统一使用周期名称作为文件名
         # Period不是标准枚举，通过repr获取名称然后提取周期部分
@@ -104,7 +106,8 @@ class DataInterface:
         try:
             stock_pool_path = self.cache_dir / stock_list_file
             if stock_pool_path.exists():
-                df = pd.read_csv(stock_pool_path)
+                # 读取CSV时将股票代码列作为字符串类型，避免丢失前导0
+                df = pd.read_csv(stock_pool_path, dtype={'stock_code': str, 'code': str})
                 # 按优先级顺序查找股票代码列
                 if 'stock_code' in df.columns:
                     stock_codes = df['stock_code'].tolist()
@@ -112,10 +115,10 @@ class DataInterface:
                     stock_codes = df['code'].tolist()
                 else:
                     # 默认使用第一列
-                    stock_codes = df.iloc[:, 0].tolist()
+                    stock_codes = df.iloc[:, 0].astype(str).tolist()
                 
-                # 过滤掉空值
-                stock_codes = [code for code in stock_codes if pd.notna(code) and str(code).strip()]
+                # 过滤掉空值，确保转换为字符串
+                stock_codes = [str(code).strip() for code in stock_codes if pd.notna(code) and str(code).strip()]
                 
                 logger.info(f"成功加载{len(stock_codes)}只股票")
                 return stock_codes
@@ -135,7 +138,8 @@ class DataInterface:
         try:
             stock_pool_path = self.cache_dir / stock_list_file
             if stock_pool_path.exists():
-                df = pd.read_csv(stock_pool_path)
+                # 读取CSV时将股票代码列作为字符串类型，避免丢失前导0
+                df = pd.read_csv(stock_pool_path, dtype={'stock_code': str, 'code': str})
                 stocks_info = []
                 
                 # 检查是否有股票名称列

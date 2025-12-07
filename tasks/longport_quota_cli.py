@@ -10,6 +10,10 @@
 """
 
 import sys
+import os
+# 添加项目根目录到Python路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import argparse
 import time
 import pytz
@@ -91,23 +95,46 @@ class LongPortQuotaCLI:
             stock_codes = [security.symbol for security in watchlist_securities]
             logger.info(f"获取到 {len(stock_codes)} 只自选股")
             
+            # 获取股票基础信息以获取中文名称
+            logger.info("正在获取股票基础信息（包括中文名称）...")
+            stock_info_dict = self.collector.get_stock_basic_info(stock_codes)
+            
             stock_pool_path = self.data_interface.cache_dir / self.stock_pool_file
             
             # 写入新的股票池文件
             import csv
             with open(stock_pool_path, 'w', newline='', encoding='utf-8') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(['stock_code', 'stock_name'])
+                writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC)  # 使用引号保护所有字段
+                writer.writerow(['stock_code', 'stock_name', 'name_cn', 'name_en'])
+                
                 for security in watchlist_securities:
-                    writer.writerow([security.symbol, security.name])
+                    stock_code = str(security.symbol)
+                    
+                    # 优先使用中文名称，如果没有则使用英文名称
+                    name_cn = ''
+                    name_en = str(security.name)
+                    
+                    if stock_code in stock_info_dict:
+                        info = stock_info_dict[stock_code]
+                        name_cn = str(info.name_cn) if hasattr(info, 'name_cn') and info.name_cn else ''
+                        name_en = str(info.name_en) if hasattr(info, 'name_en') and info.name_en else name_en
+                    
+                    # stock_name列优先显示中文，如果没有中文则显示英文
+                    stock_name = name_cn if name_cn else name_en
+                    
+                    # 确保股票代码作为字符串写入，保留前导0
+                    writer.writerow([stock_code, stock_name, name_cn, name_en])
+                    
+                    logger.info(f"  {stock_code}: {stock_name}")
             
             logger.success(f"股票池文件更新成功: {stock_pool_path}")
+            logger.info(f"文件包含列: stock_code, stock_name, name_cn, name_en")
             
         except Exception as e:
             logger.error(f"同步自选股到股票池失败: {e}")
             sys.exit(1)
 
-    def collect_history(self, market: str = "ALL", period_str: str = "Day"):
+    def get_history(self, market: str = "ALL", period_str: str = "Day"):
         """收集历史数据"""
         logger.info(f"开始收集历史数据 (市场: {market}, 周期: {period_str})")
         
@@ -226,25 +253,27 @@ class LongPortQuotaCLI:
         logger.info("获取交易时段信息...")
         sessions = self.collector.get_trading_session()
         if sessions:
-            for session in sessions:
-                logger.info(f"市场: {session.market}, 时段: {session.trade_sessions}")
+            logger.success("交易时段信息获取成功")
         else:
-            logger.warning("未获取到交易时段信息")
+            logger.error("交易时段信息获取失败")
 
 def main():
     # 配置日志
     logger.remove()
     logger.add(sys.stdout, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}", level="INFO")
-    logger.add("logs/collector_cli_{time:YYYY-MM-DD}.log", rotation="1 day", retention="30 days")
+    logger.add("logs/longport_quota_cli_{time:YYYY-MM-DD}.log", rotation="1 day", retention="30 days")
 
     parser = argparse.ArgumentParser(description="AwesomeTrader 数据收集器 CLI")
     subparsers = parser.add_subparsers(dest="command", help="可用命令")
 
+    # Command: show_sessions
+    subparsers.add_parser("show_sessions", help="查看交易时段")
+
     # Command: sync_watchlist
     subparsers.add_parser("sync_watchlist", help="同步自选股到股票池")
 
-    # Command: collect_history
-    parser_history = subparsers.add_parser("collect_history", help="收集历史数据")
+    # Command: get_history
+    parser_history = subparsers.add_parser("get_history", help="收集历史数据")
     parser_history.add_argument("--market", default="ALL", help="市场代码 (US, HK, CN, SG, ALL)")
     parser_history.add_argument("--period", default="Day", help="K线周期 (Day, Week, Month, Year)")
 
@@ -252,9 +281,6 @@ def main():
     parser_update = subparsers.add_parser("update_latest", help="更新最新数据")
     parser_update.add_argument("--market", default="ALL", help="市场代码 (US, HK, CN, SG, ALL)")
     parser_update.add_argument("--period", default="Day", help="K线周期 (Day, Week, Month, Year)")
-
-    # Command: show_sessions
-    subparsers.add_parser("show_sessions", help="查看交易时段")
 
     args = parser.parse_args()
     
@@ -266,14 +292,14 @@ def main():
     cli = LongPortQuotaCLI()
 
     try:
-        if args.command == "sync_watchlist":
+        if args.command == "show_sessions":
+            cli.show_sessions()
+        elif args.command == "sync_watchlist":
             cli.sync_watchlist()
-        elif args.command == "collect_history":
-            cli.collect_history(market=args.market, period_str=args.period)
+        elif args.command == "get_history":
+            cli.get_history(market=args.market, period_str=args.period)
         elif args.command == "update_latest":
             cli.update_latest(market=args.market, period_str=args.period)
-        elif args.command == "show_sessions":
-            cli.show_sessions()
             
     except KeyboardInterrupt:
         logger.info("用户中断操作")
