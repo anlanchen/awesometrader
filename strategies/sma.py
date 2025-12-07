@@ -37,11 +37,11 @@ if __name__ == '__main__':
     print(heatmap.sort_values().iloc[-10:])
     # hm = heatmap.groupby(['n']).mean().unstack()
     # hm = hm[::-1]
-    # hm.to_csv('sma_heatmap.csv')
+    # hm.to_csv('strategies/results/sma_heatmap.csv')
 
     # stats = backtest.run()
     # print(stats)
     
     # 输出所有订单
-    # stats['_trades'].to_csv('backtest_trades.csv', index=False)
-    # stats['_equity_curve'].to_csv('backtest_equity_curve.csv', index=False)
+    # stats['_trades'].to_csv('strategies/results/sma_trades.csv', index=False)
+    # stats['_equity_curve'].to_csv('strategies/results/sma_equity_curve.csv', index=False)

@@ -40,12 +40,12 @@ print(stats)
 print(heatmap.sort_values().iloc[-5:])
 hm = heatmap.groupby(['n1', 'n2']).mean().unstack()
 hm = hm[::-1]
-hm.to_csv('results/sma_heatmap.csv')
+hm.to_csv('strategies/results/sma_cross_heatmap.csv')
 
 
 # stats = backtest.run()
 # backtest.plot()
 # print(stats)
 
-# stats['_trades'].to_csv('backtest_trades.csv', index=False)
-# stats['_equity_curve'].to_csv('backtest_equity_curve.csv', index=False)
+# stats['_trades'].to_csv('strategies/results/sma_cross_trades.csv', index=False)
+# stats['_equity_curve'].to_csv('strategies/results/sma_cross_equity_curve.csv', index=False)

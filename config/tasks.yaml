@@ -1,0 +1,78 @@
+global:
+  max_workers: 5
+  timezone: "Asia/Shanghai"
+
+tasks:
+  - name: "美股盘后数据更新"
+    script: "tasks/run_collector.py"
+    trigger: "cron"
+    hour: 16
+    minute: 30
+    timezone: "America/New_York"
+    trigger_args:
+      misfire_grace_time: 3600
+    args: # 传递给脚本的参数
+      - "update_latest"
+      - "--market"
+      - "US"
+    enabled: true
+
+  - name: "港股盘后数据更新"
+    script: "tasks/run_collector.py"
+    trigger: "cron"
+    hour: 16
+    minute: 30
+    timezone: "Asia/Hong_Kong"
+    args:
+      - "update_latest"
+      - "--market"
+      - "HK"
+    enabled: true
+
+  - name: "每日同步自选股"
+    script: "tasks/run_collector.py"
+    trigger: "cron"
+    hour: 8
+    minute: 0
+    timezone: "Asia/Shanghai"
+    args:
+      - "sync_watchlist"
+    enabled: true
+
+  - name: "美股盘后账户报告"
+    script: "tasks/run_messager.py"
+    trigger: "cron"
+    hour: 16
+    minute: 35
+    timezone: "America/New_York"
+    trigger_args:
+      misfire_grace_time: 3600
+    args:
+      - "report"
+      - "--market"
+      - "US"
+    enabled: true
+
+  - name: "港股盘后账户报告"
+    script: "tasks/run_messager.py"
+    trigger: "cron"
+    hour: 16
+    minute: 35
+    timezone: "Asia/Hong_Kong"
+    args:
+      - "report"
+      - "--market"
+      - "HK"
+    enabled: true
+
+  - name: "环境检查"
+    script: "tasks/task_check_env.py"
+    trigger: "interval"
+    seconds: 5
+    enabled: false # 默认关闭，按需开启
+
+  - name: "测试任务"
+    script: "tasks/task_test.py"
+    trigger: "interval"
+    seconds: 30
+    enabled: false

@@ -98,5 +98,6 @@ ipython_config.py
 
 # Trading specific
 trading_data/
+strategies/results/
 backtest_results/
 live_trading/ 

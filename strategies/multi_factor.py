@@ -193,11 +193,11 @@ if __name__ == '__main__':
     print(heatmap.sort_values().iloc[-3:])
     # hm = heatmap.groupby(['n']).mean().unstack()
     # hm = hm[::-1]
-    # hm.to_csv('sma_heatmap.csv')
+    # hm.to_csv('strategies/results/multi_factor_heatmap.csv')
 
     # stats = backtest.run()
     # print(stats)
     # # backtest.plot()
 
-    # stats['_trades'].to_csv('results/backtest_trades.csv', index=False)
-    # stats['_equity_curve'].to_csv('results/backtest_equity_curve.csv', index=False)
+    # stats['_trades'].to_csv('strategies/results/multi_factor_trades.csv', index=False)
+    # stats['_equity_curve'].to_csv('strategies/results/multi_factor_equity_curve.csv', index=False)
