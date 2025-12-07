@@ -3,8 +3,18 @@ global:
   timezone: "Asia/Shanghai"
 
 tasks:
+  - name: "每日同步自选股"
+    script: "tasks/longport_quota_cli.py"
+    trigger: "cron"
+    hour: 8
+    minute: 0
+    timezone: "Asia/Shanghai"
+    args:
+      - "sync_watchlist"
+    enabled: true
+    
   - name: "美股盘后数据更新"
-    script: "tasks/run_collector.py"
+    script: "tasks/longport_quota_cli.py"
     trigger: "cron"
     hour: 16
     minute: 30
@@ -18,7 +28,7 @@ tasks:
     enabled: true
 
   - name: "港股盘后数据更新"
-    script: "tasks/run_collector.py"
+    script: "tasks/longport_quota_cli.py"
     trigger: "cron"
     hour: 16
     minute: 30
@@ -27,16 +37,6 @@ tasks:
       - "update_latest"
       - "--market"
       - "HK"
-    enabled: true
-
-  - name: "每日同步自选股"
-    script: "tasks/run_collector.py"
-    trigger: "cron"
-    hour: 8
-    minute: 0
-    timezone: "Asia/Shanghai"
-    args:
-      - "sync_watchlist"
     enabled: true
 
   - name: "美股盘后账户报告"
@@ -64,15 +64,3 @@ tasks:
       - "--market"
       - "HK"
     enabled: true
-
-  - name: "环境检查"
-    script: "tasks/task_check_env.py"
-    trigger: "interval"
-    seconds: 5
-    enabled: false # 默认关闭，按需开启
-
-  - name: "测试任务"
-    script: "tasks/task_test.py"
-    trigger: "interval"
-    seconds: 30
-    enabled: false
