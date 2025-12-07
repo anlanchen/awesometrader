@@ -75,6 +75,7 @@ Thumbs.db
 # Project specific
 logs/
 cache/
+caches/
 *.log
 config/local.yaml
 

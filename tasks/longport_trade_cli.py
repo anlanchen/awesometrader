@@ -29,10 +29,7 @@ class LongPortTradeCLI:
         self.initial_capital = initial_capital
         
         # 创建输出目录
-        self.output_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            'output'
-        )
+        self.output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'caches', 'account')
         os.makedirs(self.output_dir, exist_ok=True)
         
         logger.info("交易CLI初始化完成")
