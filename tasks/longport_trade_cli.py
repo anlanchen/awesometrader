@@ -39,7 +39,7 @@ class LongPortTradeCLI:
         filename = f"{command}_{timestamp}.{extension}"
         return os.path.join(self.output_dir, filename)
     
-    def _save_to_file(content: str, filepath: str) -> None:
+    def _save_to_file(self, content: str, filepath: str) -> None:
         """保存内容到文件"""
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
