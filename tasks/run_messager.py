@@ -24,8 +24,8 @@ class AccountReporter:
         """初始化账户报告器"""
         self.trader = LongPortTradeAPI()
 
-        self.webhook_url = "https://oapi.dingtalk.com/robot/send?access_token=56b1816700f3fd34ca58e1db36bcb23c8bd048745622a121c44b4ec1f805a3b8"
-        self.secret = "SECc148e9dc5e5bc7914d332f5e5687ee000302a46f61f4df4045aabbbe17ba2e0a"
+        self.webhook_url = "https://oapi.dingtalk.com/robot/send?access_token=31017c949ed2c36aa3cdad026f5ff29ea44b38633b26ce90e0197d092191b963"
+        self.secret = "SECab458845ce006384fd7b7e12959440c9f803106b7140e3ce109373dff3e11d81"
         self.messager = DingTalkMessager(dingtalk_webhook=self.webhook_url, dingtalk_secret=self.secret)
         
         # 初始化数据收集器（用于获取交易时段和股票报价）

@@ -15,8 +15,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from awesometrader import LongPortTradeAPI
 from awesometrader import LongPortQuotaAPI
 from tasks.exchange_rate import ExchangeRateService
-from longport.openapi import AccountBalance, StockPositionChannel
-
 
 class LongPortTradeCLI:
     """交易账户查询CLI"""
@@ -75,9 +73,9 @@ class LongPortTradeCLI:
             adjustments = {}
         try:
             # 获取所有币种的账户余额信息
-            balances: List[AccountBalance] = self.trader.get_account_balance(currency=currency)
+            balances = self.trader.get_account_balance(currency=currency)
             # 获取持仓信息
-            positions: List[StockPositionChannel] = self.trader.get_stock_positions()
+            positions = self.trader.get_stock_positions()
 
             if not balances:
                 logger.error("无法获取账户余额信息")
