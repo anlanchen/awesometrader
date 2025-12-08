@@ -15,6 +15,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from awesometrader import LongPortTradeAPI
 from awesometrader.notify import DingTalkMessager
 from awesometrader.collector import LongPortQuotaAPI
+from longport.openapi import AccountBalance, StockPositionChannel
 
 class AccountReporter:
     """账户信息报告器"""
@@ -92,11 +93,11 @@ class AccountReporter:
     def get_position_markets(self) -> List[str]:
         """获取当前持仓涉及的市场"""
         try:
-            positions = self.trader.get_stock_positions()
+            positions: List[StockPositionChannel] = self.trader.get_stock_positions()
             markets = set()
             if positions:
                 for account in positions:
-                    if hasattr(account, 'positions') and account.positions:
+                    if account.positions:
                         for stock in account.positions:
                             symbol = stock.symbol
                             if symbol.endswith('.US'):
@@ -112,9 +113,9 @@ class AccountReporter:
         """计算账户各项指标"""
         try:
             # 获取账户余额信息
-            balances = self.trader.get_account_balance(currency='USD')
+            balances: List[AccountBalance] = self.trader.get_account_balance(currency='USD')
             # 获取持仓信息
-            positions = self.trader.get_stock_positions()
+            positions: List[StockPositionChannel] = self.trader.get_stock_positions()
             
             if not balances:
                 logger.error("无法获取账户余额信息")
@@ -143,15 +144,15 @@ class AccountReporter:
                 # 收集所有股票代码，批量获取报价
                 all_symbols = []
                 for account in positions:
-                    if hasattr(account, 'positions') and account.positions:
+                    if account.positions:
                         for stock in account.positions:
                             all_symbols.append(stock.symbol)
                 
                 # 批量获取报价数据
                 quote_data = self.get_stock_quote_data(all_symbols) if all_symbols else {}
-                
+
                 for account in positions:
-                    if hasattr(account, 'positions') and account.positions:
+                    if account.positions:
                         for stock in account.positions:
                             symbol = stock.symbol
                             quantity = int(stock.quantity)

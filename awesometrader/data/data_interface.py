@@ -1,6 +1,6 @@
 import pandas as pd
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Type
 from loguru import logger
 from datetime import datetime
 from longport.openapi import Period
@@ -16,7 +16,7 @@ class DataInterface:
         
     # ==================== 基础工具函数 ====================
     
-    def get_stock_data_path(self, stock_code: str, period: Period, file_format: str = 'csv') -> Path:
+    def get_stock_data_path(self, stock_code: str, period: Type[Period], file_format: str = 'csv') -> Path:
         """
         获取股票数据文件路径
         :param stock_code: 股票代码 如 '00700.HK'
@@ -166,7 +166,7 @@ class DataInterface:
     
     # ==================== 股票数据操作 ====================
     
-    def get_stock_data(self, stock_code: str, period: Period = Period.Day, 
+    def get_stock_data(self, stock_code: str, period: Type[Period] = Period.Day,
                       start_date: datetime = None, end_date: datetime = None,
                       file_format: str = 'csv') -> pd.DataFrame:
         """
@@ -209,8 +209,8 @@ class DataInterface:
             logger.error(f"获取股票数据失败: {e}")
             return pd.DataFrame()
     
-    def save_stock_data(self, stock_code: str, df: pd.DataFrame, 
-                       period: Period = Period.Day, file_format: str = 'csv', 
+    def save_stock_data(self, stock_code: str, df: pd.DataFrame,
+                       period: Type[Period] = Period.Day, file_format: str = 'csv',
                        force_update: bool = False) -> bool:
         """
         保存股票数据

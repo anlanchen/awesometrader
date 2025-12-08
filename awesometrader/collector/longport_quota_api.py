@@ -1,9 +1,30 @@
+from __future__ import annotations
 import pandas as pd
-from typing import List, Dict, Type
+from typing import List, Dict, Type, Optional, TYPE_CHECKING
 from loguru import logger
 from datetime import datetime, date
-from longport.openapi import Period, AdjustType, TradeSessions, CalcIndex, Market, MarketTradingDays
-from longport.openapi import QuoteContext, Config, MarketTradingSession, SecurityStaticInfo, SecurityQuote, SecurityCalcIndex, WatchlistSecurity, StrikePriceInfo, OptionQuote
+from longport.openapi import (
+    Period,
+    AdjustType,
+    TradeSessions,
+    CalcIndex,
+    Market,
+    MarketTradingDays,
+    QuoteContext,
+    Config
+)
+
+if TYPE_CHECKING:
+    from longport.openapi import (
+        MarketTradingSession,
+        SecurityStaticInfo,
+        SecurityQuote,
+        SecurityCalcIndex,
+        WatchlistSecurity,
+        StrikePriceInfo,
+        OptionQuote,
+        SecurityDepth
+    )
 
 class LongPortQuotaAPI:
     def __init__(self):
@@ -235,7 +256,7 @@ class LongPortQuotaAPI:
             logger.error(f"获取股票计算指标失败: {e}")
             return {}
 
-    def get_stock_candlesticks(self, stock_code: str, period: Period, count: int, adjust_type: AdjustType) -> pd.DataFrame:
+    def get_stock_candlesticks(self, stock_code: str, period: Type[Period], count: int, adjust_type: Type[AdjustType]) -> pd.DataFrame:
         """
         获取股票K线数据
         根据LongPort API文档: https://open.longportapp.com/zh-CN/docs/quote/pull/candlestick
@@ -301,7 +322,7 @@ class LongPortQuotaAPI:
             logger.error(f"获取股票K线数据失败 {stock_code}: {e}")
             return pd.DataFrame()
 
-    def get_stock_history(self, stock_code: str, period: Period, adjust_type: AdjustType, 
+    def get_stock_history(self, stock_code: str, period: Type[Period], adjust_type: Type[AdjustType],
                          start_date: datetime, end_date: datetime) -> pd.DataFrame:
         """
         获取股票历史K线数据
@@ -486,11 +507,11 @@ class LongPortQuotaAPI:
             logger.error(f"获取期权实时行情失败: {e}")
             return {}
 
-    def get_depth(self, stock_code: str):
+    def get_depth(self, stock_code: str) -> Optional[SecurityDepth]:
         """
         获取标的盘口数据
         根据LongPort API文档: https://open.longportapp.com/zh-CN/docs/quote/pull/depth
-        
+
         :param stock_code: 标的代码，使用 ticker.region 格式，例如：'700.HK', 'AAPL.US'
         :return: 盘口数据对象，包含买卖盘信息
                 - symbol: 标的代码

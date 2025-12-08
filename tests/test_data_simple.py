@@ -9,12 +9,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import unittest
 import pandas as pd
-import numpy as np
-from pathlib import Path
 from datetime import datetime, time
 from loguru import logger
-from awesometrader import DataInterface, LongPortQuotaAPI
 from longport.openapi import Period, AdjustType
+from awesometrader import DataInterface, LongPortQuotaAPI
 
 class TestDataModule(unittest.TestCase):
     def setUp(self):
@@ -33,7 +31,6 @@ class TestDataModule(unittest.TestCase):
         
         # 测试DataInterface初始化
         self.assertIsNotNone(self.data_interface, "DataInterface实例不应该为None")
-        self.assertTrue(hasattr(self.data_interface, 'cache_dir'), "应该有cache_dir属性")
         self.assertIsNotNone(self.data_interface.cache_dir, "缓存目录不应该为None")
         logger.info(f"✓ DataInterface初始化成功，缓存目录: {self.data_interface.cache_dir}")
         
@@ -178,8 +175,6 @@ class TestDataModule(unittest.TestCase):
             
             for market_session in market_sessions:
                 # 验证市场信息结构
-                self.assertTrue(hasattr(market_session, 'market'), "市场交易时段应该有market属性")
-                
                 market = market_session.market
                 found_markets.append(market)
                 
@@ -192,9 +187,6 @@ class TestDataModule(unittest.TestCase):
                 
                 for session in trade_sessions:
                     # 验证交易时段结构
-                    self.assertTrue(hasattr(session, 'begin_time'), "交易时段应该有beg_time属性")
-                    self.assertTrue(hasattr(session, 'end_time'), "交易时段应该有end_time属性")
-                    
                     begin_time = session.begin_time
                     end_time = session.end_time
                     
@@ -212,16 +204,14 @@ class TestDataModule(unittest.TestCase):
                     start_time = begin_time.strftime("%H:%M")
                     end_time_str = end_time.strftime("%H:%M")
                     
-                    # 获取交易时段类型（如果有的话）
-                    session_type = "正常交易"
-                    if hasattr(session, 'trade_session'):
-                        trade_session_value = session.trade_session
-                        if trade_session_value == 1:
-                            session_type = "盘前交易"
-                        elif trade_session_value == 2:
-                            session_type = "盘后交易"
-                        else:
-                            session_type = "正常交易"
+                    # 获取交易时段类型
+                    trade_session_value = session.trade_session
+                    if trade_session_value == 1:
+                        session_type = "盘前交易"
+                    elif trade_session_value == 2:
+                        session_type = "盘后交易"
+                    else:
+                        session_type = "正常交易"
                     
                     logger.info(f"  交易时段: {start_time} - {end_time_str} ({session_type})")
                 
@@ -284,13 +274,6 @@ class TestDataModule(unittest.TestCase):
             if len(stock_list) > 0:
                 # 验证自选股数据结构
                 for i, security in enumerate(stock_list):
-                    # 验证必要的属性
-                    self.assertTrue(hasattr(security, 'symbol'), f"第{i+1}只股票应该有symbol属性")
-                    self.assertTrue(hasattr(security, 'market'), f"第{i+1}只股票应该有market属性")
-                    self.assertTrue(hasattr(security, 'name'), f"第{i+1}只股票应该有name属性")
-                    self.assertTrue(hasattr(security, 'watched_price'), f"第{i+1}只股票应该有watched_price属性")
-                    self.assertTrue(hasattr(security, 'watched_at'), f"第{i+1}只股票应该有watched_at属性")
-                    
                     # 验证股票代码格式
                     symbol = security.symbol
                     self.assertIsNotNone(symbol, f"第{i+1}只股票的代码不应该为None")
@@ -387,9 +370,7 @@ class TestDataModule(unittest.TestCase):
                 # 验证返回数据的结构
                 for symbol, info in basic_info.items():
                     self.assertIsNotNone(symbol, f"股票代码{symbol}不应该为None")
-                    self.assertTrue(hasattr(info, 'name_cn'), f"股票{symbol}应该有中文名属性")
-                    self.assertTrue(hasattr(info, 'exchange'), f"股票{symbol}应该有交易所属性")
-                    
+
                     logger.info(f"股票 {symbol}:")
                     logger.info(f"  中文名: {info.name_cn}")
                     logger.info(f"  英文名: {info.name_en}")
@@ -438,11 +419,7 @@ class TestDataModule(unittest.TestCase):
                 for symbol, quote_data in quote_dict.items():
                     self.assertIsNotNone(symbol, f"股票代码{symbol}不应该为None")
                     self.assertIsNotNone(quote_data, f"股票{symbol}的行情数据不应该为None")
-                    
-                    # 验证必要的行情字段
-                    self.assertTrue(hasattr(quote_data, 'last_done'), f"股票{symbol}应该有最新价字段")
-                    self.assertTrue(hasattr(quote_data, 'volume'), f"股票{symbol}应该有成交量字段")
-                    
+
                     logger.info(f"股票代码: {symbol}")
                     logger.info(f"  最新价: {quote_data.last_done}")
                     logger.info(f"  昨收价: {quote_data.prev_close}")
@@ -452,13 +429,13 @@ class TestDataModule(unittest.TestCase):
                     logger.info(f"  成交量: {quote_data.volume}")
                     logger.info(f"  成交额: {quote_data.turnover}")
                     logger.info(f"  交易状态: {quote_data.trade_status}")
-                    
+
                     # 如果有盘前行情数据
-                    if hasattr(quote_data, 'pre_market_quote') and quote_data.pre_market_quote:
+                    if quote_data.pre_market_quote:
                         logger.info(f"  盘前最新价: {quote_data.pre_market_quote.last_done}")
-                    
-                    # 如果有盘后行情数据  
-                    if hasattr(quote_data, 'post_market_quote') and quote_data.post_market_quote:
+
+                    # 如果有盘后行情数据
+                    if quote_data.post_market_quote:
                         logger.info(f"  盘后最新价: {quote_data.post_market_quote.last_done}")
                     
                     logger.info("-" * 30)
@@ -498,72 +475,68 @@ class TestDataModule(unittest.TestCase):
                 for symbol, calc_index in calc_index_dict.items():
                     self.assertIsNotNone(symbol, f"股票代码{symbol}不应该为None")
                     self.assertIsNotNone(calc_index, f"股票{symbol}的计算指标数据不应该为None")
-                    
-                    # 验证关键字段
-                    self.assertTrue(hasattr(calc_index, 'symbol'), f"股票{symbol}应该有symbol字段")
-                    self.assertTrue(hasattr(calc_index, 'last_done'), f"股票{symbol}应该有最新价字段")
-                    
+
                     logger.info(f"股票代码: {symbol}")
                     logger.info(f"  最新价: {calc_index.last_done}")
-                    
+
                     # 基础价格指标
-                    if hasattr(calc_index, 'change_val') and calc_index.change_val:
-                        logger.info(f"  涨跌额: {calc_index.change_val}")
-                    if hasattr(calc_index, 'change_rate') and calc_index.change_rate:
+                    if calc_index.change_value:
+                        logger.info(f"  涨跌额: {calc_index.change_value}")
+                    if calc_index.change_rate:
                         logger.info(f"  涨跌幅: {calc_index.change_rate}%")
-                    
+
                     # 成交相关指标
-                    if hasattr(calc_index, 'volume') and calc_index.volume:
+                    if calc_index.volume:
                         logger.info(f"  成交量: {calc_index.volume:,}")
-                    if hasattr(calc_index, 'turnover') and calc_index.turnover:
+                    if calc_index.turnover:
                         logger.info(f"  成交额: {calc_index.turnover}")
-                    if hasattr(calc_index, 'turnover_rate') and calc_index.turnover_rate:
+                    if calc_index.turnover_rate:
                         logger.info(f"  换手率: {calc_index.turnover_rate}%")
-                    
+
                     # 估值指标
-                    if hasattr(calc_index, 'pe_ttm_ratio') and calc_index.pe_ttm_ratio:
+                    if calc_index.pe_ttm_ratio:
                         logger.info(f"  市盈率(TTM): {calc_index.pe_ttm_ratio}")
-                    if hasattr(calc_index, 'pb_ratio') and calc_index.pb_ratio:
+                    if calc_index.pb_ratio:
                         logger.info(f"  市净率: {calc_index.pb_ratio}")
-                    if hasattr(calc_index, 'dividend_ratio_ttm') and calc_index.dividend_ratio_ttm:
+                    if calc_index.dividend_ratio_ttm:
                         logger.info(f"  股息率(TTM): {calc_index.dividend_ratio_ttm}%")
-                    
+
                     # 市值指标
-                    if hasattr(calc_index, 'total_market_value') and calc_index.total_market_value:
+                    if calc_index.total_market_value:
                         logger.info(f"  总市值: {calc_index.total_market_value}")
-                    
+
                     # 技术指标
-                    if hasattr(calc_index, 'amplitude') and calc_index.amplitude:
+                    if calc_index.amplitude:
                         logger.info(f"  振幅: {calc_index.amplitude}%")
-                    if hasattr(calc_index, 'volume_ratio') and calc_index.volume_ratio:
+                    if calc_index.volume_ratio:
                         logger.info(f"  量比: {calc_index.volume_ratio}")
-                    
+
                     # 不同时期涨幅
-                    if hasattr(calc_index, 'ytd_change_rate') and calc_index.ytd_change_rate:
+                    if calc_index.ytd_change_rate:
                         logger.info(f"  年初至今涨幅: {calc_index.ytd_change_rate}%")
-                    if hasattr(calc_index, 'five_day_change_rate') and calc_index.five_day_change_rate:
+                    if calc_index.five_day_change_rate:
                         logger.info(f"  五日涨幅: {calc_index.five_day_change_rate}%")
-                    if hasattr(calc_index, 'ten_day_change_rate') and calc_index.ten_day_change_rate:
+                    if calc_index.ten_day_change_rate:
                         logger.info(f"  十日涨幅: {calc_index.ten_day_change_rate}%")
-                    if hasattr(calc_index, 'half_year_change_rate') and calc_index.half_year_change_rate:
+                    if calc_index.half_year_change_rate:
                         logger.info(f"  半年涨幅: {calc_index.half_year_change_rate}%")
-                    
+
                     # 期权相关指标（如果是期权标的）
-                    if hasattr(calc_index, 'expiry_date') and calc_index.expiry_date:
+                    if calc_index.expiry_date:
                         logger.info(f"  到期日: {calc_index.expiry_date}")
-                    if hasattr(calc_index, 'strike_price') and calc_index.strike_price:
+                    if calc_index.strike_price:
                         logger.info(f"  行权价: {calc_index.strike_price}")
-                    if hasattr(calc_index, 'implied_volatility') and calc_index.implied_volatility:
+                    if calc_index.implied_volatility:
                         logger.info(f"  隐含波动率: {calc_index.implied_volatility}%")
-                    
+
                     # 希腊字母（期权）
-                    if hasattr(calc_index, 'delta') and calc_index.delta:
+                    if calc_index.delta:
                         logger.info(f"  Delta: {calc_index.delta}")
-                    if hasattr(calc_index, 'gamma') and calc_index.gamma:
+                    if calc_index.gamma:
                         logger.info(f"  Gamma: {calc_index.gamma}")
-                    if hasattr(calc_index, 'theta') and calc_index.theta:
+                    if calc_index.theta:
                         logger.info(f"  Theta: {calc_index.theta}")
-                    if hasattr(calc_index, 'vega') and calc_index.vega:
+                    if calc_index.vega:
                         logger.info(f"  Vega: {calc_index.vega}")
                     
                     logger.info("-" * 30)
@@ -844,9 +817,9 @@ class TestDataModule(unittest.TestCase):
                 
                 for option in filtered_options:
                     strike_price = option.price
-                    call_symbol = option.call_symbol if hasattr(option, 'call_symbol') else None
-                    put_symbol = option.put_symbol if hasattr(option, 'put_symbol') else None
-                    
+                    call_symbol = option.call_symbol
+                    put_symbol = option.put_symbol
+
                     logger.info(f"  行权价: {strike_price}")
                     if call_symbol:
                         logger.info(f"    CALL: {call_symbol}")
@@ -898,28 +871,19 @@ class TestDataModule(unittest.TestCase):
                         put_count += 1
                     
                     logger.info(f"期权代码: {symbol} ({option_type})")
-                    
-                    # 验证期权行情字段
-                    if hasattr(quote, 'last_done') and quote.last_done:
-                        logger.info(f"  最新价: {quote.last_done}")
-                    if hasattr(quote, 'bid') and quote.bid:
-                        logger.info(f"  买一价: {quote.bid}")
-                    if hasattr(quote, 'ask') and quote.ask:
-                        logger.info(f"  卖一价: {quote.ask}")
-                    if hasattr(quote, 'volume') and quote.volume:
-                        logger.info(f"  成交量: {quote.volume}")
-                    if hasattr(quote, 'implied_volatility') and quote.implied_volatility:
-                        logger.info(f"  隐含波动率: {quote.implied_volatility}%")
-                    
-                    # 期权希腊字母
-                    if hasattr(quote, 'delta') and quote.delta is not None:
-                        logger.info(f"  Delta: {quote.delta}")
-                    if hasattr(quote, 'gamma') and quote.gamma is not None:
-                        logger.info(f"  Gamma: {quote.gamma}")
-                    if hasattr(quote, 'theta') and quote.theta is not None:
-                        logger.info(f"  Theta: {quote.theta}")
-                    if hasattr(quote, 'vega') and quote.vega is not None:
-                        logger.info(f"  Vega: {quote.vega}")
+
+                    # 验证期权行情字段（只打印OptionQuote类型中确实存在的字段）
+                    logger.info(f"  最新价: {quote.last_done}")
+                    logger.info(f"  昨收价: {quote.prev_close}")
+                    logger.info(f"  开盘价: {quote.open}")
+                    logger.info(f"  最高价: {quote.high}")
+                    logger.info(f"  最低价: {quote.low}")
+                    logger.info(f"  成交量: {quote.volume}")
+                    logger.info(f"  成交额: {quote.turnover}")
+                    logger.info(f"  隐含波动率: {quote.implied_volatility}")
+                    logger.info(f"  未平仓合约数: {quote.open_interest}")
+                    logger.info(f"  行权价: {quote.strike_price}")
+                    logger.info(f"  到期日: {quote.expiry_date}")
                     
                     logger.info("-" * 30)
                 
@@ -961,11 +925,7 @@ class TestDataModule(unittest.TestCase):
                 
                 # 基本断言测试
                 self.assertIsNotNone(depth_data, f"股票{stock_code}的盘口数据不应该为None")
-                
-                # 验证数据结构
-                self.assertTrue(hasattr(depth_data, 'asks'), f"股票{stock_code}的盘口数据应该有ask属性")
-                self.assertTrue(hasattr(depth_data, 'bids'), f"股票{stock_code}的盘口数据应该有bid属性")
-                
+
                 logger.info(f"✓ 成功获取股票 {stock_code} 的盘口数据")
                 
                 # 验证和展示卖盘数据
@@ -978,12 +938,6 @@ class TestDataModule(unittest.TestCase):
                 if ask_data:
                     logger.info("  卖盘详情:")
                     for i, ask in enumerate(ask_data[:5]):  # 只显示前5档
-                        # 验证卖盘数据结构
-                        self.assertTrue(hasattr(ask, 'position'), f"卖盘第{i+1}档应该有position属性")
-                        self.assertTrue(hasattr(ask, 'price'), f"卖盘第{i+1}档应该有price属性")
-                        self.assertTrue(hasattr(ask, 'volume'), f"卖盘第{i+1}档应该有volume属性")
-                        self.assertTrue(hasattr(ask, 'order_num'), f"卖盘第{i+1}档应该有order_num属性")
-                        
                         # 验证数据有效性
                         self.assertIsNotNone(ask.position, f"卖盘第{i+1}档的档位不应该为None")
                         self.assertIsNotNone(ask.price, f"卖盘第{i+1}档的价格不应该为None")
@@ -1011,12 +965,6 @@ class TestDataModule(unittest.TestCase):
                 if bid_data:
                     logger.info("  买盘详情:")
                     for i, bid in enumerate(bid_data[:5]):  # 只显示前5档
-                        # 验证买盘数据结构
-                        self.assertTrue(hasattr(bid, 'position'), f"买盘第{i+1}档应该有position属性")
-                        self.assertTrue(hasattr(bid, 'price'), f"买盘第{i+1}档应该有price属性")
-                        self.assertTrue(hasattr(bid, 'volume'), f"买盘第{i+1}档应该有volume属性")
-                        self.assertTrue(hasattr(bid, 'order_num'), f"买盘第{i+1}档应该有order_num属性")
-                        
                         # 验证数据有效性
                         self.assertIsNotNone(bid.position, f"买盘第{i+1}档的档位不应该为None")
                         self.assertIsNotNone(bid.price, f"买盘第{i+1}档的价格不应该为None")

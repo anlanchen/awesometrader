@@ -45,12 +45,6 @@ install: ## 一键安装 - 自动安装uv、设置环境并安装所有依赖
 	@echo "$(GREEN)========================================$(RESET)"
 	@echo "$(GREEN)  AwesomeTrader 安装完成!$(RESET)"
 	@echo "$(GREEN)========================================$(RESET)"
-	@echo ""
-	@echo "$(GREEN)虚拟环境已激活，现在可以运行:$(RESET)"
-	@echo "  $(YELLOW)python run_collector.py$(RESET)          # 运行数据收集器"
-	@echo ""
-	@echo "$(BLUE)或者直接使用uv运行:$(RESET)"
-	@echo "  $(YELLOW)uv run python run_collector.py$(RESET)   # 使用uv直接运行"
 
 sync: ## 同步项目依赖
 	@echo "$(BLUE)同步项目依赖...$(RESET)"

@@ -1,19 +1,12 @@
+from __future__ import annotations
 from loguru import logger
 from datetime import date, datetime
-from typing import Optional, List, Any
+from typing import Optional, List, Type, TYPE_CHECKING
 from decimal import Decimal
-from longport.openapi import (
-    TradeContext,
-    Config,
-    OrderType,
-    OrderSide,
-    TimeInForceType,
-    OutsideRTH,
-    OrderDetail,
-    OrderStatus,
-    Market,
-    BalanceType
-)
+from longport.openapi import TradeContext, Config, OrderType, OrderSide, TimeInForceType, OutsideRTH, OrderDetail, OrderStatus, Market, BalanceType, Order
+
+if TYPE_CHECKING:
+    from longport.openapi import AccountBalance, CashFlow, StockPositionChannel
 
 class LongPortTradeAPI:
     def __init__(self):
@@ -21,15 +14,15 @@ class LongPortTradeAPI:
         config = Config.from_env()
         self.trade_ctx = TradeContext(config)
 
-    def get_account_balance(self, currency: Optional[str] = None) -> List[Any]:
+    def get_account_balance(self, currency: Optional[str] = None) -> List[AccountBalance]:
         """
         获取账户资金信息
-        
+
         Args:
             currency: 可选，指定币种筛选（HKD、USD、CNH）
-            
+
         Returns:
-            List[Any]: 账户资金列表，包含现金总额、可用现金、冻结现金等信息
+            List[AccountBalance]: 账户资金列表，包含现金总额、可用现金、冻结现金等信息
         """
         try:
             logger.info(f"开始获取账户资金信息，币种筛选: {currency if currency else '全部'}")
@@ -48,16 +41,16 @@ class LongPortTradeAPI:
             logger.error(f"获取账户资金信息失败: {str(e)}")
             return []
         
-    def get_stock_positions(self, symbols: Optional[List[str]] = None) -> List[Any]:
+    def get_stock_positions(self, symbols: Optional[List[str]] = None) -> List[StockPositionChannel]:
         """
         获取股票持仓信息
-        
+
         Args:
             symbols: 可选，股票代码列表，使用 ticker.region 格式，例如：["AAPL.US", "700.HK"]
                     如果不指定，则返回所有持仓股票
-            
+
         Returns:
-            List[Any]: 账户持仓列表，每个账户包含account_channel和positions信息
+            List[StockPositionChannel]: 账户持仓列表，每个账户包含account_channel和positions信息
         """
         try:
             logger.info(f"开始获取股票持仓信息，筛选股票: {symbols if symbols else '全部'}")
@@ -95,7 +88,7 @@ class LongPortTradeAPI:
                      business_type: Optional[BalanceType] = None,
                      symbol: Optional[str] = None,
                      page: Optional[int] = None,
-                     size: Optional[int] = None) -> List[Any]:
+                     size: Optional[int] = None) -> List[CashFlow]:
         """
         获取资金流水信息
 
@@ -108,7 +101,7 @@ class LongPortTradeAPI:
             size: 可选，每页数量，默认50，范围1-10000
 
         Returns:
-            List[Any]: 资金流水列表，包含交易流水名称、方向、金额、币种、时间等信息
+            List[CashFlow]: 资金流水列表，包含交易流水名称、方向、金额、币种、时间等信息
         """
         try:
             logger.info(f"开始获取资金流水信息，时间范围: {start_at} 至 {end_at}")
@@ -128,7 +121,7 @@ class LongPortTradeAPI:
             )
 
             # 返回的是CashFlow对象，包含list字段
-            cash_flows = resp.list if resp and hasattr(resp, 'list') else []
+            cash_flows = resp
             logger.info(f"成功获取资金流水信息，共{len(cash_flows)}条记录")
 
             # 打印资金流水摘要
@@ -145,17 +138,17 @@ class LongPortTradeAPI:
 
     def submit_order(self,
                     symbol: str,
-                    order_type: OrderType,
-                    side: OrderSide,
+                    order_type: Type[OrderType],
+                    side: Type[OrderSide],
                     submitted_quantity: Decimal,
-                    time_in_force: TimeInForceType,
+                    time_in_force: Type[TimeInForceType],
                     submitted_price: Optional[Decimal] = None,
                     trigger_price: Optional[Decimal] = None,
                     limit_offset: Optional[Decimal] = None,
                     trailing_amount: Optional[Decimal] = None,
                     trailing_percent: Optional[Decimal] = None,
                     expire_date: Optional[date] = None,
-                    outside_rth: Optional[OutsideRTH] = None,
+                    outside_rth: Optional[Type[OutsideRTH]] = None,
                     remark: Optional[str] = None) -> str:
         """
         委托下单
@@ -180,7 +173,7 @@ class LongPortTradeAPI:
         """
         try:
             logger.info(f"开始提交订单: {symbol} {side} {submitted_quantity}股 {order_type}")
-            
+
             # 调用LongPort API提交订单
             resp = self.trade_ctx.submit_order(
                 symbol=symbol,
@@ -197,7 +190,7 @@ class LongPortTradeAPI:
                 outside_rth=outside_rth,
                 remark=remark
             )
-            
+
             logger.info(f"订单提交成功，订单ID: {resp.order_id}")
             return resp.order_id
             
@@ -298,28 +291,28 @@ class LongPortTradeAPI:
 
     def get_today_orders(self,
                         symbol: Optional[str] = None,
-                        status: Optional[List[OrderStatus]] = None,
-                        side: Optional[OrderSide] = None,
-                        market: Optional[Market] = None,
-                        order_id: Optional[str] = None) -> List[Any]:
+                        status: Optional[List[Type[OrderStatus]]] = None,
+                        side: Optional[Type[OrderSide]] = None,
+                        market: Optional[Type[Market]] = None,
+                        order_id: Optional[str] = None) -> List[Order]:
         """
         获取当日订单
-        
+
         Args:
             symbol: 可选，股票代码，使用 ticker.region 格式，例如：AAPL.US
             status: 可选，订单状态列表，例如：[OrderStatus.Filled, OrderStatus.New]
             side: 可选，买卖方向，Buy-买入，Sell-卖出
             market: 可选，市场，US-美股，HK-港股
             order_id: 可选，订单ID，用于指定订单ID查询
-            
+
         Returns:
-            List[Any]: 当日订单列表，每个订单包含订单ID、状态、股票名称、数量、价格等信息
+            List[Order]: 当日订单列表，每个订单包含订单ID、状态、股票名称、数量、价格等信息
         """
         try:
             logger.info("开始获取当日订单")
             
             # 调用LongPort API获取当日订单
-            resp = self.trade_ctx.today_orders(
+            resp: List[Order] = self.trade_ctx.today_orders(
                 symbol=symbol,
                 status=status,
                 side=side,

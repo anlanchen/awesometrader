@@ -18,8 +18,8 @@ class TestMessageModule(unittest.TestCase):
     def setUp(self):
         """每个测试方法之前运行"""
         # 初始化消息接口
-        self.webhook_url = "https://oapi.dingtalk.com/robot/send?access_token=3fede205bc3f924ee019abd045523bbccd75009b0bd32e976e1e86a51108edca"
-        self.secret = "SEC38b3260cdbd3ec2ddd153cb1c80ed8f73aedcfc801c907e5d86a1779d9a119eb"
+        self.webhook_url = "https://oapi.dingtalk.com/robot/send?access_token=31017c949ed2c36aa3cdad026f5ff29ea44b38633b26ce90e0197d092191b963"
+        self.secret = "SECab458845ce006384fd7b7e12959440c9f803106b7140e3ce109373dff3e11d81"
         self.messager = DingTalkMessager(dingtalk_webhook=self.webhook_url, dingtalk_secret=self.secret)
         
     def tearDown(self):

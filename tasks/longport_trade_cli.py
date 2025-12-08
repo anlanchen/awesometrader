@@ -15,6 +15,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from awesometrader import LongPortTradeAPI
 from awesometrader import LongPortQuotaAPI
 from tasks.exchange_rate import ExchangeRateService
+from longport.openapi import AccountBalance, StockPositionChannel
 
 
 class LongPortTradeCLI:
@@ -40,7 +41,7 @@ class LongPortTradeCLI:
         filename = f"{command}_{timestamp}.{extension}"
         return os.path.join(self.output_dir, filename)
     
-    def _save_to_file(self, content: str, filepath: str) -> None:
+    def _save_to_file(content: str, filepath: str) -> None:
         """保存内容到文件"""
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
@@ -74,9 +75,9 @@ class LongPortTradeCLI:
             adjustments = {}
         try:
             # 获取所有币种的账户余额信息
-            balances = self.trader.get_account_balance(currency=currency)
+            balances: List[AccountBalance] = self.trader.get_account_balance(currency=currency)
             # 获取持仓信息
-            positions = self.trader.get_stock_positions()
+            positions: List[StockPositionChannel] = self.trader.get_stock_positions()
 
             if not balances:
                 logger.error("无法获取账户余额信息")

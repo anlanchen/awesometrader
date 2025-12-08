@@ -16,7 +16,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import argparse
 import time
-import pytz
 from datetime import datetime
 from typing import List
 from loguru import logger
@@ -47,7 +46,8 @@ class LongPortQuotaCLI:
             logger.error(f"加载股票池失败: {e}")
             return []
 
-    def get_market_from_stock_code(self, stock_code: str) -> str:
+    @staticmethod
+    def get_market_from_stock_code(stock_code: str) -> str:
         """从股票代码获取市场信息"""
         if '.' in stock_code:
             market_suffix = stock_code.split('.')[-1].upper()

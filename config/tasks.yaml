@@ -13,28 +13,15 @@ tasks:
       - "sync_watchlist"
     enabled: true
 
-  - name: "美股盘后账户报告"
-    script: "tasks/run_messager.py"
+  - name: "每日账户指标统计"
+    script: "tasks/longport_trade_cli.py"
     trigger: "cron"
-    hour: 16
-    minute: 35
-    timezone: "America/New_York"
-    trigger_args:
-      misfire_grace_time: 3600
+    hour: 8
+    minute: 0
+    timezone: "Asia/Shanghai"
     args:
-      - "report"
-      - "--market"
-      - "US"
-    enabled: true
-
-  - name: "港股盘后账户报告"
-    script: "tasks/run_messager.py"
-    trigger: "cron"
-    hour: 16
-    minute: 35
-    timezone: "Asia/Hong_Kong"
-    args:
-      - "report"
-      - "--market"
-      - "HK"
+      - "account-metrics"
+      - "--adjust"
+      - "USD"
+      - "-12000"
     enabled: true
