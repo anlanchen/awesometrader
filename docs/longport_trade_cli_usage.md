@@ -21,7 +21,7 @@
 ### 计算账户指标 (account-metrics)
 
 ```bash
-# 使用默认参数查询（币种：CNH，初始资金：1800000）
+# 使用默认参数查询（币种：CNH，初始资金：1000000）
 python tasks/longport_trade_cli.py account-metrics
 
 # 指定目标币种为美元
@@ -40,7 +40,7 @@ python tasks/longport_trade_cli.py account-metrics --adjust USD 2000
 python tasks/longport_trade_cli.py account-metrics --adjust USD 2000 --adjust HKD -1000
 
 # 完整示例：指定币种、初始资金和调整金额
-python tasks/longport_trade_cli.py account-metrics --currency CNH --initial-capital 1800000 --adjust USD 5000
+python tasks/longport_trade_cli.py account-metrics --currency CNH --initial-capital 1000000 --adjust USD 5000
 ```
 
 **参数说明：**
@@ -48,7 +48,7 @@ python tasks/longport_trade_cli.py account-metrics --currency CNH --initial-capi
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `--currency` | 字符串 | CNH | 目标币种，所有资产将折算为此币种 (USD/HKD/CNH) |
-| `--initial-capital` | 浮点数 | 1800000.0 | 初始资金，用于计算账户总盈亏 |
+| `--initial-capital` | 浮点数 | 1000000.0 | 初始资金，用于计算账户总盈亏 |
 | `--adjust` | 币种 金额 | 无 | 资金调整，可多次使用。用于处理未入账或需要额外调整的资金 |
 
 **输出内容包括：**

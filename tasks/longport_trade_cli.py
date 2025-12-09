@@ -394,8 +394,8 @@ def main():
     parser_metrics.add_argument(
         "--initial-capital",
         type=float,
-        default=1800000.0,
-        help="初始资金 (默认: 1800000.0)"
+        default=1000000.0,
+        help="初始资金 (默认: 1000000.0)"
     )
     parser_metrics.add_argument(
         "--adjust",
@@ -416,7 +416,7 @@ def main():
     # 初始化CLI
     try:
         # 根据命令确定初始资金
-        initial_capital = getattr(args, 'initial_capital', 1800000.0)
+        initial_capital = getattr(args, 'initial_capital', 1000000.0)
         cli = LongPortTradeCLI(initial_capital=initial_capital)
 
         # 执行对应的命令
