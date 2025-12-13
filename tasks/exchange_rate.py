@@ -76,21 +76,21 @@ class ExchangeRateService:
                 rates_data = {}
                 if base_currency == 'CNH':
                     rates_data = {
-                        'USD': 1.0 / rates.get('USD', 1.0),
-                        'HKD': 1.0 / rates.get('HKD', 1.0),
+                        'USD': rates.get('USD', 0.141),
+                        'HKD': rates.get('HKD', 1.1),
                         'CNH': 1.0,
                     }
                 elif base_currency == 'USD':
                     rates_data = {
                         'USD': 1.0,
-                        'HKD': rates.get('HKD', 7.8),
-                        'CNH': rates.get('CNY', 7.2),
+                        'HKD': rates.get('HKD', 7.78),
+                        'CNH': rates.get('CNY', 7.06),
                     }
                 elif base_currency == 'HKD':
                     rates_data = {
-                        'USD': rates.get('USD', 0.128),
+                        'USD': rates.get('USD', 0.129),
                         'HKD': 1.0,
-                        'CNH': rates.get('CNY', 0.92),
+                        'CNH': rates.get('CNY', 0.908),
                     }
 
                 # 保存汇率数据和时间戳
@@ -113,21 +113,21 @@ class ExchangeRateService:
         """获取默认汇率（当API调用失败时使用）"""
         if base_currency == 'CNH':
             return {
-                'USD': 7.08,   # 1 USD = 7.08 CNH
-                'HKD': 0.92,   # 1 HKD = 0.92 CNH
+                'USD': 0.141, 
+                'HKD': 1.1,
                 'CNH': 1.0,
             }
         elif base_currency == 'USD':
             return {
                 'USD': 1.0,
-                'HKD': 0.129,  # 1 HKD = 0.129 USD
-                'CNH': 0.142,  # 1 CNH = 0.142 USD
+                'HKD': 7.78,
+                'CNH': 7.06,
             }
         elif base_currency == 'HKD':
             return {
-                'USD': 7.77,    # 1 USD = 7.77 HKD
+                'USD': 0.129,
                 'HKD': 1.0,
-                'CNH': 1.10,   # 1 CNH = 1.10 HKD
+                'CNH': 0.908,
             }
         else:
             return {
@@ -145,14 +145,14 @@ class ExchangeRateService:
             from_currency: 源币种
             to_currency: 目标币种
             
-        Returns:
+        Returns:x
             float: 转换后的金额
         """
         if from_currency == to_currency:
             return amount
         
-        rates = self.get_exchange_rates(to_currency)
-        rate = rates.get(from_currency, 1.0)
+        rates = self.get_exchange_rates(from_currency)
+        rate = rates.get(to_currency, 1.0)
         return amount * rate
     
     def clear_cache(self) -> None:
@@ -186,12 +186,13 @@ class ExchangeRateService:
             output_lines.append(f"查询时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             output_lines.append(f"基准币种: {base_currency}")
             output_lines.append("")
-            output_lines.append("【当前汇率】")
+            output_lines.append(f"【当前汇率】(其他货币 -> {base_currency})")
             output_lines.append("-" * 60)
             
             for curr, rate in rates.items():
                 if curr != base_currency:
-                    output_lines.append(f"  1 {curr} = {rate:.4f} {base_currency}")
+                    # 其他货币兑换成基准币种的汇率
+                    output_lines.append(f"  {rate:.3f}  {curr} = 1 {base_currency}")
 
             output_lines.append("")
             output_lines.append("=" * 60)
