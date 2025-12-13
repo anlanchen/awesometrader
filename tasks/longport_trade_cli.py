@@ -343,11 +343,7 @@ class LongPortTradeCLI:
             # 输出到控制台
             print(output_content)
             
-            # 保存到文件
-            filepath = self._get_output_filename('account_metrics')
-            self._save_to_file(output_content, filepath)
-            
-            # 同时保存JSON格式
+            # 保存JSON格式
             json_filepath = self._get_output_filename('account_metrics', 'json')
             self._save_to_file(json.dumps(metrics, indent=2, ensure_ascii=False), json_filepath)
             
