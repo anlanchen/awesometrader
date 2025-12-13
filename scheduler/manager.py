@@ -1,4 +1,5 @@
 import time
+import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, EVENT_JOB_MISSED
@@ -12,8 +13,10 @@ from scheduler.executor import TaskExecutor
 
 class SchedulerManager:
     def __init__(self, config_path: str = "config/tasks.yaml"):
+        self.config_path = config_path
         self.config_loader = ConfigLoader(config_path)
         self.scheduler: Optional[BackgroundScheduler] = None
+        self._last_config_mtime: float = 0
         self._setup_scheduler()
 
     def _setup_scheduler(self):
@@ -87,19 +90,40 @@ class SchedulerManager:
 
         logger.info(f"Loaded {len(tasks)} tasks")
 
+    def _get_config_mtime(self) -> float:
+        """获取配置文件的修改时间"""
+        try:
+            return os.path.getmtime(self.config_path)
+        except OSError:
+            return 0
+    
+    def _check_and_reload(self):
+        """检查配置文件是否变化，如有变化则重新加载"""
+        current_mtime = self._get_config_mtime()
+        if current_mtime > self._last_config_mtime:
+            if self._last_config_mtime > 0:  # 不是首次加载
+                logger.info("Config file changed, reloading tasks...")
+                self.config_loader.load()
+                self.load_tasks()
+            self._last_config_mtime = current_mtime
+
     def start(self):
         """Start the scheduler"""
         if not self.scheduler:
             self._setup_scheduler()
-            
+        
+        # 记录初始配置文件修改时间
+        self._last_config_mtime = self._get_config_mtime()
+        
         self.load_tasks()
         self.scheduler.start()
-        logger.info("Scheduler started")
+        logger.info("Scheduler started (config hot-reload enabled)")
         
         try:
-            # Keep main thread alive
+            # Keep main thread alive and check config changes
             while True:
                 time.sleep(1)
+                self._check_and_reload()
         except (KeyboardInterrupt, SystemExit):
             self.stop()
 
