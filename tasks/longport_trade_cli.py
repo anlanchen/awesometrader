@@ -4,6 +4,7 @@
 import os
 import sys
 import json
+import csv
 import argparse
 from datetime import datetime
 from typing import Dict, List, Any, Optional
@@ -18,6 +19,12 @@ from tasks.exchange_rate import ExchangeRateService
 
 class LongPortTradeCLI:
     """交易账户查询CLI"""
+    
+    # CSV 字段定义
+    CSV_FIELDS = [
+        'date', 'total_assets', 'total_market_value', 'total_cash_balance',
+        'total_adjustment', 'leverage_ratio', 'total_pnl', 'total_pnl_pct'
+    ]
 
     def __init__(self, initial_capital: float = 1500000.0):
         """初始化交易CLI"""
@@ -28,8 +35,12 @@ class LongPortTradeCLI:
         self.initial_capital = initial_capital
         
         # 创建输出目录
-        self.output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'caches', 'account')
+        self.cache_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'caches')
+        self.output_dir = os.path.join(self.cache_dir, 'account')
         os.makedirs(self.output_dir, exist_ok=True)
+        
+        # CSV 文件路径
+        self.csv_path = os.path.join(self.cache_dir, 'account.csv')
         
         logger.info("交易CLI初始化完成")
 
@@ -47,6 +58,62 @@ class LongPortTradeCLI:
             logger.success(f"结果已保存到: {filepath}")
         except Exception as e:
             logger.error(f"保存文件失败: {e}")
+    
+    def _extract_csv_row(self, data: dict, date_str: str) -> dict:
+        """从账户指标数据中提取 CSV 行数据"""
+        # 格式化日期为 YYYY-MM-DD
+        formatted_date = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]}"
+        
+        # 格式化数值：保留2位小数，百分比字段转换为%显示
+        return {
+            'date': formatted_date,
+            'total_assets': f"{data.get('total_assets', 0):.2f}",
+            'total_market_value': f"{data.get('total_market_value', 0):.2f}",
+            'total_cash_balance': f"{data.get('total_cash_balance', 0):.2f}",
+            'total_adjustment': f"{data.get('total_adjustment', 0):.2f}",
+            'leverage_ratio': f"{data.get('leverage_ratio', 0) * 100:.2f}%",
+            'total_pnl': f"{data.get('total_pnl', 0):.2f}",
+            'total_pnl_pct': f"{data.get('total_pnl_pct', 0) * 100:.2f}%",
+        }
+    
+    def _update_csv(self, row_data: dict) -> bool:
+        """更新 CSV 文件，如果日期已存在则更新，否则追加"""
+        try:
+            # 读取现有数据
+            existing_rows = []
+            if os.path.exists(self.csv_path):
+                with open(self.csv_path, 'r', encoding='utf-8', newline='') as f:
+                    reader = csv.DictReader(f)
+                    existing_rows = list(reader)
+            
+            # 查找是否已存在该日期的记录
+            date_found = False
+            for i, row in enumerate(existing_rows):
+                if row['date'] == row_data['date']:
+                    existing_rows[i] = row_data
+                    date_found = True
+                    logger.info(f"更新已存在的日期记录: {row_data['date']}")
+                    break
+            
+            if not date_found:
+                existing_rows.append(row_data)
+                logger.info(f"添加新的日期记录: {row_data['date']}")
+            
+            # 按日期排序
+            existing_rows.sort(key=lambda x: x['date'])
+            
+            # 写入 CSV 文件
+            with open(self.csv_path, 'w', encoding='utf-8', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=self.CSV_FIELDS)
+                writer.writeheader()
+                writer.writerows(existing_rows)
+            
+            logger.success(f"CSV 文件更新成功: {self.csv_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"更新 CSV 文件失败: {e}")
+            return False
     
     def get_stock_quote_data(self, symbols: List[str]) -> Dict[str, float]:
         """批量获取股票报价数据"""
@@ -346,6 +413,11 @@ class LongPortTradeCLI:
             # 保存JSON格式
             json_filepath = self._get_output_filename('account_metrics', 'json')
             self._save_to_file(json.dumps(metrics, indent=2, ensure_ascii=False), json_filepath)
+            
+            # 同步更新 CSV 文件
+            date_str = datetime.now().strftime('%Y%m%d')
+            row_data = self._extract_csv_row(metrics, date_str)
+            self._update_csv(row_data)
             
         except Exception as e:
             logger.error(f"查询账户指标失败: {e}")
