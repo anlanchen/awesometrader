@@ -26,11 +26,11 @@ tasks:
       - "-10800"
     enabled: true
 
-  - name: "每日账户报告"
-    script: "tasks/account_reporter.py"
-    trigger: "cron"
-    hour: 8
-    minute: 30
-    timezone: "Asia/Shanghai"
-    args: []
-    enabled: true
+  # - name: "每日账户报告"
+  #   script: "tasks/account_reporter.py"
+  #   trigger: "cron"
+  #   hour: 8
+  #   minute: 30
+  #   timezone: "Asia/Shanghai"
+  #   args: []
+  #   enabled: true

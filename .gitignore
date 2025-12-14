@@ -74,10 +74,8 @@ Thumbs.db
 
 # Project specific
 logs/
-cache/
 caches/
 *.log
-config/local.yaml
 
 # Environment variables
 .env
