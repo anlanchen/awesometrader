@@ -20,7 +20,7 @@ tasks:
     minute: 0
     timezone: "Asia/Shanghai"
     args:
-      - "account-metrics"
+      - "account"
       - "--adjust"
       - "USD"
       - "-10800"

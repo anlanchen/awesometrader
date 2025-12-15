@@ -23,16 +23,14 @@ class LongPortTradeCLI:
     # CSV 字段定义
     CSV_FIELDS = [
         'date', 'total_assets', 'total_market_value', 'total_cash_balance',
-        'total_adjustment', 'leverage_ratio', 'total_pnl', 'total_pnl_pct'
+        'total_adjustment', 'leverage_ratio'
     ]
 
-    def __init__(self, initial_capital: float = 1500000.0):
+    def __init__(self):
         """初始化交易CLI"""
         self.trader = LongPortTradeAPI()
         self.quote_api = LongPortQuotaAPI()
         self.exchange_rate_service = ExchangeRateService()
-        
-        self.initial_capital = initial_capital
         
         # 创建输出目录
         self.cache_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'caches')
@@ -72,8 +70,6 @@ class LongPortTradeCLI:
             'total_cash_balance': f"{data.get('total_cash_balance', 0):.2f}",
             'total_adjustment': f"{data.get('total_adjustment', 0):.2f}",
             'leverage_ratio': f"{data.get('leverage_ratio', 0) * 100:.2f}%",
-            'total_pnl': f"{data.get('total_pnl', 0):.2f}",
-            'total_pnl_pct': f"{data.get('total_pnl_pct', 0) * 100:.2f}%",
         }
     
     def _update_csv(self, row_data: dict) -> bool:
@@ -292,15 +288,9 @@ class LongPortTradeCLI:
             # 计算杠杆率
             leverage_ratio = (total_market_value / total_assets) if total_assets > 0 else 0.0
 
-            # 计算账户总盈亏（相对于初始资金）
-            total_pnl = total_assets - self.initial_capital
-            total_pnl_pct = (total_pnl / self.initial_capital) if self.initial_capital > 0 else 0.0
-
             return {
                 'currency': currency,
                 'total_assets': total_assets,
-                'total_pnl': total_pnl,
-                'total_pnl_pct': total_pnl_pct,
                 'total_market_value': total_market_value,
                 'total_cash_balance': total_cash_balance,
                 'total_adjustment': total_adjustment,
@@ -342,7 +332,6 @@ class LongPortTradeCLI:
             output_lines.append("=" * 80)
             output_lines.append(f"查询时间: {metrics['timestamp']}")
             output_lines.append(f"展示币种: {currency}")
-            output_lines.append(f"初始资金: {currency_symbol}{self.initial_capital:,.2f}")
             output_lines.append("")
             
             # 汇率信息
@@ -361,8 +350,6 @@ class LongPortTradeCLI:
             if metrics.get('adjustment_details'):
                 output_lines.append(f"  资金调整合计:   {currency_symbol}{metrics['total_adjustment']:,.2f}")
             output_lines.append(f"  杠杆率:         {metrics['leverage_ratio']:.2%}")
-            pnl_sign = "+" if metrics['total_pnl'] >= 0 else ""
-            output_lines.append(f"  账户盈亏:       {pnl_sign}{currency_symbol}{metrics['total_pnl']:,.2f} ({metrics['total_pnl_pct']:.2%})")
             output_lines.append("")
 
             # 显示资金调整明细
@@ -411,7 +398,7 @@ class LongPortTradeCLI:
             print(output_content)
             
             # 保存JSON格式
-            json_filepath = self._get_output_filename('account_metrics', 'json')
+            json_filepath = self._get_output_filename('account', 'json')
             self._save_to_file(json.dumps(metrics, indent=2, ensure_ascii=False), json_filepath)
             
             # 同步更新 CSV 文件
@@ -440,30 +427,40 @@ def main():
     )
     
     # 创建主解析器
+    epilog_text = """
+示例用法:
+  # 查询账户指标（默认使用CNH币种）
+  python tasks/longport_trade_cli.py account
+
+  # 使用USD币种展示
+  python tasks/longport_trade_cli.py account --currency USD
+
+  # 添加资金调整
+  python tasks/longport_trade_cli.py account --adjust USD 2000 --adjust HKD -1000
+
+使用 "python tasks/longport_trade_cli.py <command> -h" 查看具体命令的详细帮助
+"""
     parser = argparse.ArgumentParser(
         description="LongPort 交易账户查询 CLI",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=epilog_text
     )
     
     # 创建子命令解析器
-    subparsers = parser.add_subparsers(dest="command", help="可用命令")
+    subparsers = parser.add_subparsers(dest="command", help="可用命令", metavar="<command>")
     
-    # 子命令: account-metrics
+    # 子命令: account
     parser_metrics = subparsers.add_parser(
-        "account-metrics",
-        help="计算账户各项指标（资产、持仓、盈亏等）"
+        "account",
+        help="计算账户各项指标（资产、持仓、盈亏等）",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="计算账户各项指标（资产、持仓、盈亏等），包括总资产、现金余额、持仓市值、杠杆率等"
     )
     parser_metrics.add_argument(
         "--currency",
         choices=['USD', 'HKD', 'CNH'],
         default='CNH',
         help="目标币种，所有资产将折算为此币种 (可选: USD, HKD, CNH，默认: CNH)"
-    )
-    parser_metrics.add_argument(
-        "--initial-capital",
-        type=float,
-        default=1000000.0,
-        help="初始资金 (默认: 1000000.0)"
     )
     parser_metrics.add_argument(
         "--adjust",
@@ -483,12 +480,10 @@ def main():
 
     # 初始化CLI
     try:
-        # 根据命令确定初始资金
-        initial_capital = getattr(args, 'initial_capital', 1000000.0)
-        cli = LongPortTradeCLI(initial_capital=initial_capital)
+        cli = LongPortTradeCLI()
 
         # 执行对应的命令
-        if args.command == "account-metrics":
+        if args.command == "account":
             # 解析调整金额参数
             adjustments = {}
             if hasattr(args, 'adjust') and args.adjust:
