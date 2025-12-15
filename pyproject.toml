@@ -35,5 +35,10 @@ dependencies = [
     "backtesting", # 回测框架
     "pytz",  # 时区处理
     "APScheduler>=3.10.4", # 高级任务调度
-    "PyYAML>=6.0.1"  # 配置文件解析
+    "PyYAML>=6.0.1",  # 配置文件解析
+    # Web 分析服务依赖
+    "fastapi>=0.104.0",  # Web API 框架
+    "uvicorn[standard]>=0.24.0",  # ASGI 服务器
+    "quantstats>=0.0.62",  # 量化分析指标
+    "yfinance>=0.2.31",  # 获取基准指数数据
 ]

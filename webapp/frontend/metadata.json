@@ -1,0 +1,5 @@
+{
+  "name": "Portfolio Analytics",
+  "description": "Professional investment account analysis dashboard featuring equity curves, risk metrics, benchmark comparison, and drawdown analysis.",
+  "requestFramePermissions": []
+}
