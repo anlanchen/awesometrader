@@ -408,8 +408,7 @@ class AnalyticsService:
             result = []
             for year, value in yearly.items():
                 result.append({
-                    "year": int(year),
-                    "return": float(value) if not np.isnan(value) else 0.0,
+                    str(year): float(value) if not np.isnan(value) else 0.0,
                 })
             
             return result
