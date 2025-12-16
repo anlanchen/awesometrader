@@ -43,4 +43,5 @@ dependencies = [
     "yfinance>=0.2.31", # 获取基准指数数据
     "watchdog>=3.0.0", # 文件监控
     "ipython>=8.37.0",
+    "py_vollib>=1.0.1", # 期权定价库 (Black-Scholes, Greeks, 隐含波动率)
 ]
