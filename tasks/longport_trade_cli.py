@@ -6,7 +6,7 @@ import sys
 import json
 import csv
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from loguru import logger
 
@@ -402,7 +402,9 @@ class LongPortTradeCLI:
             self._save_to_file(json.dumps(metrics, indent=2, ensure_ascii=False), json_filepath)
             
             # 同步更新 CSV 文件
-            date_str = datetime.now().strftime('%Y%m%d')
+            # 由于脚本在早上8点执行，获取的是前一天的收盘数据，所以记录前一天的日期
+            yesterday = datetime.now() - timedelta(days=1)
+            date_str = yesterday.strftime('%Y%m%d')
             row_data = self._extract_csv_row(metrics, date_str)
             self._update_csv(row_data)
             

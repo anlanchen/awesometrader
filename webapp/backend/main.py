@@ -63,6 +63,9 @@ async def startup_event():
         from .services.data_loader import data_loader
         data_loader.load_account_data()
         logger.success("账户数据预加载成功")
+        
+        # 启动文件监控，自动检测 account.csv 变更
+        data_loader.start_file_watcher()
     except Exception as e:
         logger.warning(f"账户数据预加载失败: {e}")
 
@@ -71,6 +74,13 @@ async def startup_event():
 async def shutdown_event():
     """应用关闭事件"""
     logger.info("关闭服务...")
+    
+    # 停止文件监控
+    try:
+        from .services.data_loader import data_loader
+        data_loader.stop_file_watcher()
+    except Exception as e:
+        logger.warning(f"停止文件监控失败: {e}")
 
 
 if __name__ == "__main__":
