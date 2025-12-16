@@ -215,13 +215,6 @@ export default function App() {
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <StatCard 
-                title="Total Return" 
-                value={`${(overview.returns.cumulative_return * 100).toFixed(2)}%`} 
-                trend={overview.returns.cumulative_return > 0 ? 'up' : 'down'}
-                subValue="Selected Period"
-                icon={<TrendingUp className="w-5 h-5 text-blue-600" />}
-              />
-              <StatCard 
                 title="Total Assets" 
                 value={formatProfit(overview.final_value)} 
                 trend={(overview.final_value - overview.initial_value) >= 0 ? 'up' : 'down'}
@@ -236,6 +229,13 @@ export default function App() {
                 icon={<JapaneseYen className="w-5 h-5 text-purple-600" />}
               />
               <StatCard 
+                title="Total Return" 
+                value={`${(overview.returns.cumulative_return * 100).toFixed(2)}%`} 
+                trend={overview.returns.cumulative_return > 0 ? 'up' : 'down'}
+                subValue="Selected Period"
+                icon={<TrendingUp className="w-5 h-5 text-blue-600" />}
+              />
+              <StatCard 
                 title="Sharpe Ratio" 
                 value={overview.risk.sharpe_ratio.toFixed(2)} 
                 subValue="Risk Adjusted"
@@ -244,9 +244,9 @@ export default function App() {
               <StatCard 
                 title="Max Drawdown" 
                 value={`${(overview.risk.max_drawdown * 100).toFixed(2)}%`}
-                trend="down" // Always bad
-                className="border-red-100 bg-red-50/10"
-                icon={<AlertTriangle className="w-5 h-5 text-red-600" />}
+                trend="down"
+                subValue="Risk Metric"
+                icon={<AlertTriangle className="w-5 h-5 text-orange-600" />}
               />
             </div>
 
