@@ -29,7 +29,7 @@ export const AssetChart: React.FC<AssetChartProps> = ({ data, initialValue, clas
   }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
-    <div className={`bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col ${className}`}>
+    <div className={`bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col ${className}`}>
       <h3 className="text-lg font-bold text-gray-800 mb-4">Asset Trend</h3>
       <div className="flex-grow w-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">

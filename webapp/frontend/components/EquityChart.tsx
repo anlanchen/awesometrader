@@ -12,38 +12,39 @@ const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`;
 
 export const EquityChart: React.FC<EquityChartProps> = ({ data, benchmarkName, className }) => {
   if (!data || !data.portfolio) return (
-      <div className={`bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 ${className}`}>
+      <div className={`bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 ${className}`}>
         Loading Chart...
       </div>
   );
 
   // Process data: Merge portfolio and benchmark
+  // 后端返回格式为 {"date": "2025-07-02", "value": 1.0}
   const portfolioMap = new Map();
   data.portfolio.forEach(item => {
-    const date = Object.keys(item)[0];
-    // Backend likely sends 1.05 for 5% gain. We subtract 1 to show 5% on chart if desired, 
-    // BUT typically "Cumulative Returns" chart shows percentage growth (e.g. +45%).
-    // If data.portfolio values are like 1.45, we map to 0.45.
-    // Assuming backend returns Total Return Factor (e.g. 1.0 start).
-    portfolioMap.set(date, item[date] - 1); 
+    const date = (item as any).date || Object.keys(item)[0];
+    const value = (item as any).value !== undefined ? (item as any).value : item[date];
+    // Backend returns Total Return Factor (e.g. 1.0 start, 1.45 for +45% gain).
+    // We subtract 1 to show percentage on chart.
+    portfolioMap.set(date, value - 1); 
   });
 
   const benchmarkMap = new Map();
   if (data.benchmark) {
     data.benchmark.forEach(item => {
-      const date = Object.keys(item)[0];
-      benchmarkMap.set(date, item[date] - 1);
+      const date = (item as any).date || Object.keys(item)[0];
+      const value = (item as any).value !== undefined ? (item as any).value : item[date];
+      benchmarkMap.set(date, value - 1);
     });
   }
 
   const chartData = Array.from(portfolioMap.keys()).map(date => ({
     date,
     Portfolio: portfolioMap.get(date),
-    Benchmark: benchmarkMap.get(date) || 0
+    Benchmark: benchmarkMap.get(date) ?? null
   })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
-    <div className={`bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col ${className}`}>
+    <div className={`bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col ${className}`}>
       <h3 className="text-lg font-bold text-gray-800 mb-4">Cumulative Returns vs Benchmark</h3>
       <div className="flex-grow w-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">

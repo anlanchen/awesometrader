@@ -55,6 +55,30 @@ class AnalyticsService:
             # 胜率
             win_rate = qs.stats.win_rate(returns)
             
+            # 平均盈利和平均亏损
+            positive_returns = returns[returns > 0]
+            negative_returns = returns[returns < 0]
+            avg_win = positive_returns.mean() if len(positive_returns) > 0 else 0.0
+            avg_loss = negative_returns.mean() if len(negative_returns) > 0 else 0.0
+            
+            # 利润因子
+            total_win = positive_returns.sum() if len(positive_returns) > 0 else 0.0
+            total_loss = abs(negative_returns.sum()) if len(negative_returns) > 0 else 0.0
+            profit_factor = total_win / total_loss if total_loss > 0 else 0.0
+            
+            # 盈亏比 (Payoff Ratio)
+            payoff_ratio = abs(avg_win / avg_loss) if avg_loss != 0 else 0.0
+            
+            # 期望收益 (Expectancy)
+            expectancy = (win_rate * avg_win) + ((1 - win_rate) * avg_loss) if win_rate > 0 else 0.0
+            
+            # 几何平均
+            geometric_mean = qs.stats.geometric_mean(returns) if hasattr(qs.stats, 'geometric_mean') else ((1 + returns).prod() ** (1/len(returns)) - 1)
+            
+            # 期望月收益和年收益
+            expected_monthly = daily_mean * 21  # 约21个交易日
+            expected_yearly = daily_mean * 252  # 约252个交易日
+            
             # YTD 和 MTD
             ytd_return = None
             mtd_return = None
@@ -83,6 +107,14 @@ class AnalyticsService:
                 "best_day": float(best_day) if not np.isnan(best_day) else 0.0,
                 "worst_day": float(worst_day) if not np.isnan(worst_day) else 0.0,
                 "win_rate": float(win_rate) if not np.isnan(win_rate) else 0.0,
+                "avg_win": float(avg_win) if not np.isnan(avg_win) else 0.0,
+                "avg_loss": float(avg_loss) if not np.isnan(avg_loss) else 0.0,
+                "profit_factor": float(profit_factor) if not np.isnan(profit_factor) else 0.0,
+                "payoff_ratio": float(payoff_ratio) if not np.isnan(payoff_ratio) else 0.0,
+                "expectancy": float(expectancy) if not np.isnan(expectancy) else 0.0,
+                "geometric_mean": float(geometric_mean) if not np.isnan(geometric_mean) else 0.0,
+                "expected_monthly": float(expected_monthly) if not np.isnan(expected_monthly) else 0.0,
+                "expected_yearly": float(expected_yearly) if not np.isnan(expected_yearly) else 0.0,
             }
             
         except Exception as e:
@@ -101,6 +133,14 @@ class AnalyticsService:
             "best_day": 0.0,
             "worst_day": 0.0,
             "win_rate": 0.0,
+            "avg_win": 0.0,
+            "avg_loss": 0.0,
+            "profit_factor": 0.0,
+            "payoff_ratio": 0.0,
+            "expectancy": 0.0,
+            "geometric_mean": 0.0,
+            "expected_monthly": 0.0,
+            "expected_yearly": 0.0,
         }
     
     # ==================== 风险指标 ====================
@@ -148,6 +188,46 @@ class AnalyticsService:
             except:
                 pass
             
+            # 溃疡指数 (Ulcer Index)
+            ulcer_index = qs.stats.ulcer_index(returns) if hasattr(qs.stats, 'ulcer_index') else self._calculate_ulcer_index(returns)
+            
+            # 尾部比率 (Tail Ratio) - 95分位收益 / |5分位收益|
+            percentile_95 = np.percentile(returns, 95)
+            percentile_5 = np.percentile(returns, 5)
+            tail_ratio = abs(percentile_95 / percentile_5) if percentile_5 != 0 else 0.0
+            
+            # 凯利公式 (Kelly Criterion)
+            positive_returns = returns[returns > 0]
+            negative_returns = returns[returns < 0]
+            win_rate = len(positive_returns) / len(returns) if len(returns) > 0 else 0
+            avg_win = positive_returns.mean() if len(positive_returns) > 0 else 0
+            avg_loss = abs(negative_returns.mean()) if len(negative_returns) > 0 else 0
+            payoff_ratio = avg_win / avg_loss if avg_loss > 0 else 0
+            kelly_criterion = (win_rate - (1 - win_rate) / payoff_ratio) if payoff_ratio > 0 else 0
+            
+            # 欧米伽比率 (Omega Ratio)
+            omega_ratio = qs.stats.omega(returns) if hasattr(qs.stats, 'omega') else self._calculate_omega_ratio(returns)
+            
+            # 增益痛苦比 (Gain to Pain Ratio)
+            gain_to_pain = qs.stats.gain_to_pain_ratio(returns) if hasattr(qs.stats, 'gain_to_pain_ratio') else self._calculate_gain_to_pain(returns)
+            
+            # 常识比率 (Common Sense Ratio) = Profit Factor * Tail Ratio
+            total_win = positive_returns.sum() if len(positive_returns) > 0 else 0
+            total_loss = abs(negative_returns.sum()) if len(negative_returns) > 0 else 0
+            profit_factor = total_win / total_loss if total_loss > 0 else 0
+            common_sense_ratio = profit_factor * tail_ratio
+            
+            # 恢复因子 (Recovery Factor) = 累计收益 / |最大回撤|
+            cumulative_return = (1 + returns).prod() - 1
+            recovery_factor = cumulative_return / abs(max_drawdown) if max_drawdown != 0 else 0
+            
+            # 风险收益比 (Risk Return Ratio)
+            annualized_return = qs.stats.cagr(returns)
+            risk_return_ratio = annualized_return / volatility if volatility > 0 else 0
+            
+            # 溃疡表现指数 (UPI) = 年化收益 / Ulcer Index
+            upi = annualized_return / ulcer_index if ulcer_index > 0 else 0
+            
             return {
                 "volatility": float(volatility) if not np.isnan(volatility) else 0.0,
                 "max_drawdown": float(max_drawdown) if not np.isnan(max_drawdown) else 0.0,
@@ -159,11 +239,40 @@ class AnalyticsService:
                 "cvar_95": float(cvar_95) if not np.isnan(cvar_95) else 0.0,
                 "skewness": float(skewness) if not np.isnan(skewness) else 0.0,
                 "kurtosis": float(kurtosis) if not np.isnan(kurtosis) else 0.0,
+                "ulcer_index": float(ulcer_index) if not np.isnan(ulcer_index) else 0.0,
+                "tail_ratio": float(tail_ratio) if not np.isnan(tail_ratio) else 0.0,
+                "kelly_criterion": float(kelly_criterion) if not np.isnan(kelly_criterion) else 0.0,
+                "omega_ratio": float(omega_ratio) if not np.isnan(omega_ratio) else 0.0,
+                "gain_to_pain_ratio": float(gain_to_pain) if not np.isnan(gain_to_pain) else 0.0,
+                "common_sense_ratio": float(common_sense_ratio) if not np.isnan(common_sense_ratio) else 0.0,
+                "recovery_factor": float(recovery_factor) if not np.isnan(recovery_factor) else 0.0,
+                "risk_return_ratio": float(risk_return_ratio) if not np.isnan(risk_return_ratio) else 0.0,
+                "ulcer_performance_index": float(upi) if not np.isnan(upi) else 0.0,
             }
             
         except Exception as e:
             logger.error(f"计算风险指标失败: {e}")
             return self._empty_risk_metrics()
+    
+    def _calculate_ulcer_index(self, returns: pd.Series) -> float:
+        """计算溃疡指数"""
+        cumulative = (1 + returns).cumprod()
+        running_max = cumulative.cummax()
+        drawdown = (cumulative - running_max) / running_max
+        return np.sqrt((drawdown ** 2).mean())
+    
+    def _calculate_omega_ratio(self, returns: pd.Series, threshold: float = 0.0) -> float:
+        """计算欧米伽比率"""
+        excess = returns - threshold
+        gains = excess[excess > 0].sum()
+        losses = abs(excess[excess < 0].sum())
+        return gains / losses if losses > 0 else 0.0
+    
+    def _calculate_gain_to_pain(self, returns: pd.Series) -> float:
+        """计算增益痛苦比"""
+        total_return = returns.sum()
+        total_loss = abs(returns[returns < 0].sum())
+        return total_return / total_loss if total_loss > 0 else 0.0
     
     def _empty_risk_metrics(self) -> Dict[str, Any]:
         """返回空的风险指标"""
@@ -178,9 +287,172 @@ class AnalyticsService:
             "cvar_95": 0.0,
             "skewness": 0.0,
             "kurtosis": 0.0,
+            "ulcer_index": 0.0,
+            "tail_ratio": 0.0,
+            "kelly_criterion": 0.0,
+            "omega_ratio": 0.0,
+            "gain_to_pain_ratio": 0.0,
+            "common_sense_ratio": 0.0,
+            "recovery_factor": 0.0,
+            "risk_return_ratio": 0.0,
+            "ulcer_performance_index": 0.0,
         }
     
     # ==================== 基准对比 ====================
+    
+    def calculate_benchmark_metrics(
+        self,
+        portfolio_returns: pd.Series,
+        benchmark: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        计算基准的完整指标（收益、风险和对比）
+        
+        :param portfolio_returns: 组合日收益率序列
+        :param benchmark: 基准代码
+        :return: 基准完整指标字典
+        """
+        if portfolio_returns.empty:
+            return None
+        
+        try:
+            # 获取对齐的基准收益率
+            benchmark_returns = self.benchmark_service.align_with_portfolio(portfolio_returns, benchmark)
+            
+            if benchmark_returns.empty:
+                logger.warning(f"无法获取基准 {benchmark} 的数据")
+                return None
+            
+            # ========== 基准收益指标 ==========
+            benchmark_cumulative = qs.stats.comp(benchmark_returns)
+            benchmark_annualized = qs.stats.cagr(benchmark_returns)
+            benchmark_daily_mean = benchmark_returns.mean()
+            benchmark_daily_std = benchmark_returns.std()
+            benchmark_best_day = benchmark_returns.max()
+            benchmark_worst_day = benchmark_returns.min()
+            benchmark_win_rate = qs.stats.win_rate(benchmark_returns)
+            
+            positive_returns = benchmark_returns[benchmark_returns > 0]
+            negative_returns = benchmark_returns[benchmark_returns < 0]
+            benchmark_avg_win = positive_returns.mean() if len(positive_returns) > 0 else 0.0
+            benchmark_avg_loss = negative_returns.mean() if len(negative_returns) > 0 else 0.0
+            
+            total_win = positive_returns.sum() if len(positive_returns) > 0 else 0.0
+            total_loss = abs(negative_returns.sum()) if len(negative_returns) > 0 else 0.0
+            benchmark_profit_factor = total_win / total_loss if total_loss > 0 else 0.0
+            benchmark_payoff_ratio = abs(benchmark_avg_win / benchmark_avg_loss) if benchmark_avg_loss != 0 else 0.0
+            benchmark_expectancy = (benchmark_win_rate * benchmark_avg_win) + ((1 - benchmark_win_rate) * benchmark_avg_loss) if benchmark_win_rate > 0 else 0.0
+            benchmark_geometric_mean = qs.stats.geometric_mean(benchmark_returns) if hasattr(qs.stats, 'geometric_mean') else ((1 + benchmark_returns).prod() ** (1/len(benchmark_returns)) - 1)
+            benchmark_expected_monthly = benchmark_daily_mean * 21
+            benchmark_expected_yearly = benchmark_daily_mean * 252
+            
+            # ========== 基准风险指标 ==========
+            benchmark_volatility = qs.stats.volatility(benchmark_returns, annualize=True)
+            benchmark_max_drawdown = qs.stats.max_drawdown(benchmark_returns)
+            benchmark_sharpe = qs.stats.sharpe(benchmark_returns, rf=config.RISK_FREE_RATE)
+            benchmark_sortino = qs.stats.sortino(benchmark_returns, rf=config.RISK_FREE_RATE)
+            benchmark_calmar = qs.stats.calmar(benchmark_returns)
+            benchmark_var_95 = qs.stats.var(benchmark_returns, sigma=1.65)
+            benchmark_cvar_95 = qs.stats.cvar(benchmark_returns, sigma=1.65)
+            benchmark_skewness = qs.stats.skew(benchmark_returns)
+            benchmark_kurtosis = qs.stats.kurtosis(benchmark_returns)
+            
+            # 溃疡指数
+            benchmark_ulcer_index = qs.stats.ulcer_index(benchmark_returns) if hasattr(qs.stats, 'ulcer_index') else self._calculate_ulcer_index(benchmark_returns)
+            
+            # 尾部比率
+            percentile_95 = np.percentile(benchmark_returns, 95)
+            percentile_5 = np.percentile(benchmark_returns, 5)
+            benchmark_tail_ratio = abs(percentile_95 / percentile_5) if percentile_5 != 0 else 0.0
+            
+            # 凯利公式
+            b_win_rate = len(positive_returns) / len(benchmark_returns) if len(benchmark_returns) > 0 else 0
+            b_avg_win = positive_returns.mean() if len(positive_returns) > 0 else 0
+            b_avg_loss = abs(negative_returns.mean()) if len(negative_returns) > 0 else 0
+            b_payoff_ratio = b_avg_win / b_avg_loss if b_avg_loss > 0 else 0
+            benchmark_kelly = (b_win_rate - (1 - b_win_rate) / b_payoff_ratio) if b_payoff_ratio > 0 else 0
+            
+            # 欧米伽比率
+            benchmark_omega = qs.stats.omega(benchmark_returns) if hasattr(qs.stats, 'omega') else self._calculate_omega_ratio(benchmark_returns)
+            
+            # 增益痛苦比
+            benchmark_gain_to_pain = qs.stats.gain_to_pain_ratio(benchmark_returns) if hasattr(qs.stats, 'gain_to_pain_ratio') else self._calculate_gain_to_pain(benchmark_returns)
+            
+            # 常识比率
+            benchmark_common_sense = benchmark_profit_factor * benchmark_tail_ratio
+            
+            # 恢复因子
+            benchmark_recovery = benchmark_cumulative / abs(benchmark_max_drawdown) if benchmark_max_drawdown != 0 else 0
+            
+            # 风险收益比
+            benchmark_risk_return = benchmark_annualized / benchmark_volatility if benchmark_volatility > 0 else 0
+            
+            # UPI
+            benchmark_upi = benchmark_annualized / benchmark_ulcer_index if benchmark_ulcer_index > 0 else 0
+            
+            # ========== 对比指标 ==========
+            alpha = qs.stats.greeks(portfolio_returns, benchmark_returns).get('alpha', 0.0)
+            beta = qs.stats.greeks(portfolio_returns, benchmark_returns).get('beta', 1.0)
+            correlation = portfolio_returns.corr(benchmark_returns)
+            info_ratio = qs.stats.information_ratio(portfolio_returns, benchmark_returns)
+            excess_returns = portfolio_returns - benchmark_returns
+            tracking_error = excess_returns.std() * np.sqrt(252)
+            up_capture = self._calculate_capture_ratio(portfolio_returns, benchmark_returns, up=True)
+            down_capture = self._calculate_capture_ratio(portfolio_returns, benchmark_returns, up=False)
+            
+            def safe_float(v, default=0.0):
+                return float(v) if not np.isnan(v) else default
+            
+            return {
+                "benchmark_name": self.benchmark_service.get_benchmark_name(benchmark),
+                # 收益指标
+                "benchmark_return": safe_float(benchmark_cumulative),
+                "benchmark_cagr": safe_float(benchmark_annualized),
+                "benchmark_daily_mean": safe_float(benchmark_daily_mean),
+                "benchmark_daily_std": safe_float(benchmark_daily_std),
+                "benchmark_best_day": safe_float(benchmark_best_day),
+                "benchmark_worst_day": safe_float(benchmark_worst_day),
+                "benchmark_win_rate": safe_float(benchmark_win_rate),
+                "benchmark_avg_win": safe_float(benchmark_avg_win),
+                "benchmark_avg_loss": safe_float(benchmark_avg_loss),
+                "benchmark_profit_factor": safe_float(benchmark_profit_factor),
+                "benchmark_payoff_ratio": safe_float(benchmark_payoff_ratio),
+                "benchmark_expectancy": safe_float(benchmark_expectancy),
+                "benchmark_geometric_mean": safe_float(benchmark_geometric_mean),
+                "benchmark_expected_monthly": safe_float(benchmark_expected_monthly),
+                "benchmark_expected_yearly": safe_float(benchmark_expected_yearly),
+                # 风险指标
+                "benchmark_volatility": safe_float(benchmark_volatility),
+                "benchmark_max_drawdown": safe_float(benchmark_max_drawdown),
+                "benchmark_sharpe": safe_float(benchmark_sharpe),
+                "benchmark_sortino": safe_float(benchmark_sortino),
+                "benchmark_calmar": safe_float(benchmark_calmar),
+                "benchmark_var_95": safe_float(benchmark_var_95),
+                "benchmark_cvar_95": safe_float(benchmark_cvar_95),
+                "benchmark_skewness": safe_float(benchmark_skewness),
+                "benchmark_kurtosis": safe_float(benchmark_kurtosis),
+                "benchmark_ulcer_index": safe_float(benchmark_ulcer_index),
+                "benchmark_tail_ratio": safe_float(benchmark_tail_ratio),
+                "benchmark_kelly_criterion": safe_float(benchmark_kelly),
+                "benchmark_omega_ratio": safe_float(benchmark_omega),
+                "benchmark_gain_to_pain_ratio": safe_float(benchmark_gain_to_pain),
+                "benchmark_common_sense_ratio": safe_float(benchmark_common_sense),
+                "benchmark_recovery_factor": safe_float(benchmark_recovery),
+                "benchmark_risk_return_ratio": safe_float(benchmark_risk_return),
+                "benchmark_ulcer_performance_index": safe_float(benchmark_upi),
+                # 对比指标
+                "alpha": safe_float(alpha),
+                "beta": safe_float(beta, 1.0),
+                "correlation": safe_float(correlation),
+                "information_ratio": safe_float(info_ratio),
+                "tracking_error": safe_float(tracking_error),
+                "up_capture": safe_float(up_capture, 1.0),
+                "down_capture": safe_float(down_capture, 1.0),
+            }
+            
+        except Exception as e:
+            logger.error(f"计算基准指标失败 {benchmark}: {e}")
+            return None
     
     def calculate_benchmark_comparison(
         self, 
@@ -188,61 +460,30 @@ class AnalyticsService:
         benchmark: str
     ) -> Optional[Dict[str, Any]]:
         """
-        计算与基准的对比指标
+        计算与基准的对比指标（兼容旧接口）
         
         :param returns: 组合日收益率序列
         :param benchmark: 基准代码
         :return: 基准对比指标字典
         """
-        if returns.empty:
+        # 调用新方法获取完整指标
+        full_metrics = self.calculate_benchmark_metrics(returns, benchmark)
+        
+        if full_metrics is None:
             return None
         
-        try:
-            # 获取对齐的基准收益率
-            benchmark_returns = self.benchmark_service.align_with_portfolio(returns, benchmark)
-            
-            if benchmark_returns.empty:
-                logger.warning(f"无法获取基准 {benchmark} 的对比数据")
-                return None
-            
-            # 基准收益率
-            benchmark_return = qs.stats.comp(benchmark_returns)
-            
-            # Alpha
-            alpha = qs.stats.greeks(returns, benchmark_returns).get('alpha', 0.0)
-            
-            # Beta
-            beta = qs.stats.greeks(returns, benchmark_returns).get('beta', 1.0)
-            
-            # 相关系数
-            correlation = returns.corr(benchmark_returns)
-            
-            # 信息比率
-            info_ratio = qs.stats.information_ratio(returns, benchmark_returns)
-            
-            # 跟踪误差
-            excess_returns = returns - benchmark_returns
-            tracking_error = excess_returns.std() * np.sqrt(252)
-            
-            # 上涨/下跌捕获率
-            up_capture = self._calculate_capture_ratio(returns, benchmark_returns, up=True)
-            down_capture = self._calculate_capture_ratio(returns, benchmark_returns, up=False)
-            
-            return {
-                "benchmark_name": self.benchmark_service.get_benchmark_name(benchmark),
-                "benchmark_return": float(benchmark_return) if not np.isnan(benchmark_return) else 0.0,
-                "alpha": float(alpha) if not np.isnan(alpha) else 0.0,
-                "beta": float(beta) if not np.isnan(beta) else 1.0,
-                "correlation": float(correlation) if not np.isnan(correlation) else 0.0,
-                "information_ratio": float(info_ratio) if not np.isnan(info_ratio) else 0.0,
-                "tracking_error": float(tracking_error) if not np.isnan(tracking_error) else 0.0,
-                "up_capture": float(up_capture),
-                "down_capture": float(down_capture),
-            }
-            
-        except Exception as e:
-            logger.error(f"计算基准对比失败 {benchmark}: {e}")
-            return None
+        # 返回兼容旧格式的数据
+        return {
+            "benchmark_name": full_metrics["benchmark_name"],
+            "benchmark_return": full_metrics["benchmark_return"],
+            "alpha": full_metrics["alpha"],
+            "beta": full_metrics["beta"],
+            "correlation": full_metrics["correlation"],
+            "information_ratio": full_metrics["information_ratio"],
+            "tracking_error": full_metrics["tracking_error"],
+            "up_capture": full_metrics["up_capture"],
+            "down_capture": full_metrics["down_capture"],
+        }
     
     def _calculate_capture_ratio(
         self, 
@@ -437,7 +678,8 @@ class AnalyticsService:
         
         return_metrics = self.calculate_return_metrics(returns)
         risk_metrics = self.calculate_risk_metrics(returns)
-        benchmark_comparison = self.calculate_benchmark_comparison(returns, benchmark)
+        # 使用新方法获取 benchmark 完整指标
+        benchmark_metrics = self.calculate_benchmark_metrics(returns, benchmark)
         
         return {
             "period": period,
@@ -448,7 +690,7 @@ class AnalyticsService:
             "final_value": float(equity.iloc[-1]),
             "returns": return_metrics,
             "risk": risk_metrics,
-            "benchmark": benchmark_comparison,
+            "benchmark": benchmark_metrics,
         }
     
     def get_equity_curve_data(

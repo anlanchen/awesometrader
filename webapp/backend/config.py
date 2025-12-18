@@ -27,13 +27,19 @@ class Config:
     API_VERSION = "1.0.0"
     
     # 基准指数配置
-    # 注意: yfinance 对某些指数支持不完整，使用 ETF 作为替代
+    # yfinance 数据源
     BENCHMARK_SYMBOLS: Dict[str, str] = {
         "sp500": "^GSPC",        # 标普500
         "nasdaq100": "^NDX",     # 纳斯达克100
-        "csi300": "000300.SS",   # 沪深300
-        "a500": "510500.SS",     # 中证500ETF (作为A500替代)
-        "hstech": "3032.HK",     # 恒生科技ETF (^HSTECH 在yfinance不可用)
+        "btc": "BTC-USD",        # 比特币
+        "gold": "GC=F",          # 黄金期货
+    }
+    
+    # akshare 数据源 (中国/港股指数，yfinance 支持不完整)
+    AKSHARE_BENCHMARKS: Dict[str, Dict] = {
+        "csi300": {"symbol": "000300", "type": "a_index", "name": "沪深300"},
+        "a500": {"symbol": "000510", "type": "a_index", "name": "中证A500"},
+        "hstech": {"symbol": "HSTECH", "type": "hk_index", "name": "恒生科技"},
     }
     
     # 时间周期配置 (period_code -> days, None 表示特殊处理)
@@ -48,7 +54,7 @@ class Config:
     }
     
     # 无风险利率 (年化，用于夏普比率等计算)
-    RISK_FREE_RATE = 0.03  # 3%
+    RISK_FREE_RATE = 0.036  # 3.6%
 
 
 config = Config()

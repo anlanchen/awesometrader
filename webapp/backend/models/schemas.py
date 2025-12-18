@@ -31,6 +31,14 @@ class ReturnMetrics(BaseModel):
     best_day: float = Field(..., description="最佳单日收益")
     worst_day: float = Field(..., description="最差单日收益")
     win_rate: float = Field(..., description="胜率")
+    avg_win: float = Field(default=0.0, description="平均盈利")
+    avg_loss: float = Field(default=0.0, description="平均亏损")
+    profit_factor: float = Field(default=0.0, description="利润因子")
+    payoff_ratio: float = Field(default=0.0, description="盈亏比")
+    expectancy: float = Field(default=0.0, description="期望收益")
+    geometric_mean: float = Field(default=0.0, description="几何平均")
+    expected_monthly: float = Field(default=0.0, description="期望月收益")
+    expected_yearly: float = Field(default=0.0, description="期望年收益")
     
 
 class RiskMetrics(BaseModel):
@@ -45,12 +53,69 @@ class RiskMetrics(BaseModel):
     cvar_95: float = Field(..., description="95% CVaR (条件风险价值)")
     skewness: float = Field(..., description="偏度")
     kurtosis: float = Field(..., description="峰度")
+    ulcer_index: float = Field(default=0.0, description="溃疡指数")
+    tail_ratio: float = Field(default=0.0, description="尾部比率")
+    kelly_criterion: float = Field(default=0.0, description="凯利公式")
+    omega_ratio: float = Field(default=0.0, description="欧米伽比率")
+    gain_to_pain_ratio: float = Field(default=0.0, description="增益痛苦比")
+    common_sense_ratio: float = Field(default=0.0, description="常识比率")
+    recovery_factor: float = Field(default=0.0, description="恢复因子")
+    risk_return_ratio: float = Field(default=0.0, description="风险收益比")
+    ulcer_performance_index: float = Field(default=0.0, description="溃疡表现指数")
 
 
 class BenchmarkComparison(BaseModel):
-    """基准对比指标"""
+    """基准对比指标（简化版，用于兼容旧接口）"""
     benchmark_name: str = Field(..., description="基准名称")
     benchmark_return: float = Field(..., description="基准收益率")
+    alpha: float = Field(..., description="Alpha")
+    beta: float = Field(..., description="Beta")
+    correlation: float = Field(..., description="相关系数")
+    information_ratio: float = Field(..., description="信息比率")
+    tracking_error: float = Field(..., description="跟踪误差")
+    up_capture: float = Field(..., description="上涨捕获率")
+    down_capture: float = Field(..., description="下跌捕获率")
+
+
+class BenchmarkMetrics(BaseModel):
+    """基准完整指标（包含收益、风险和对比指标）"""
+    benchmark_name: str = Field(..., description="基准名称")
+    # 收益指标
+    benchmark_return: float = Field(..., description="基准累计收益率")
+    benchmark_cagr: float = Field(default=0.0, description="基准年化收益率")
+    benchmark_daily_mean: float = Field(default=0.0, description="基准日均收益率")
+    benchmark_daily_std: float = Field(default=0.0, description="基准日收益率标准差")
+    benchmark_best_day: float = Field(default=0.0, description="基准最佳单日收益")
+    benchmark_worst_day: float = Field(default=0.0, description="基准最差单日收益")
+    benchmark_win_rate: float = Field(default=0.0, description="基准胜率")
+    benchmark_avg_win: float = Field(default=0.0, description="基准平均盈利")
+    benchmark_avg_loss: float = Field(default=0.0, description="基准平均亏损")
+    benchmark_profit_factor: float = Field(default=0.0, description="基准利润因子")
+    benchmark_payoff_ratio: float = Field(default=0.0, description="基准盈亏比")
+    benchmark_expectancy: float = Field(default=0.0, description="基准期望收益")
+    benchmark_geometric_mean: float = Field(default=0.0, description="基准几何平均")
+    benchmark_expected_monthly: float = Field(default=0.0, description="基准期望月收益")
+    benchmark_expected_yearly: float = Field(default=0.0, description="基准期望年收益")
+    # 风险指标
+    benchmark_volatility: float = Field(default=0.0, description="基准年化波动率")
+    benchmark_max_drawdown: float = Field(default=0.0, description="基准最大回撤")
+    benchmark_sharpe: float = Field(default=0.0, description="基准夏普比率")
+    benchmark_sortino: float = Field(default=0.0, description="基准索提诺比率")
+    benchmark_calmar: float = Field(default=0.0, description="基准卡玛比率")
+    benchmark_var_95: float = Field(default=0.0, description="基准95% VaR")
+    benchmark_cvar_95: float = Field(default=0.0, description="基准95% CVaR")
+    benchmark_skewness: float = Field(default=0.0, description="基准偏度")
+    benchmark_kurtosis: float = Field(default=0.0, description="基准峰度")
+    benchmark_ulcer_index: float = Field(default=0.0, description="基准溃疡指数")
+    benchmark_tail_ratio: float = Field(default=0.0, description="基准尾部比率")
+    benchmark_kelly_criterion: float = Field(default=0.0, description="基准凯利公式")
+    benchmark_omega_ratio: float = Field(default=0.0, description="基准欧米伽比率")
+    benchmark_gain_to_pain_ratio: float = Field(default=0.0, description="基准增益痛苦比")
+    benchmark_common_sense_ratio: float = Field(default=0.0, description="基准常识比率")
+    benchmark_recovery_factor: float = Field(default=0.0, description="基准恢复因子")
+    benchmark_risk_return_ratio: float = Field(default=0.0, description="基准风险收益比")
+    benchmark_ulcer_performance_index: float = Field(default=0.0, description="基准溃疡表现指数")
+    # 对比指标
     alpha: float = Field(..., description="Alpha")
     beta: float = Field(..., description="Beta")
     correlation: float = Field(..., description="相关系数")
@@ -105,7 +170,7 @@ class OverviewResponse(BaseModel):
     final_value: float
     returns: ReturnMetrics
     risk: RiskMetrics
-    benchmark: Optional[BenchmarkComparison] = None
+    benchmark: Optional[BenchmarkMetrics] = None
 
 
 class ReturnsResponse(BaseModel):

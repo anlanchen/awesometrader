@@ -20,6 +20,7 @@ from ..models.schemas import (
     ReturnMetrics,
     RiskMetrics,
     BenchmarkComparison,
+    BenchmarkMetrics,
     DrawdownInfo,
     MonthlyReturn,
 )
@@ -44,7 +45,8 @@ def validate_period(period: str) -> str:
 
 def validate_benchmark(benchmark: str) -> str:
     """验证基准参数"""
-    valid_benchmarks = list(config.BENCHMARK_SYMBOLS.keys())
+    # 合并 yfinance 和 akshare 两个数据源的基准
+    valid_benchmarks = list(config.BENCHMARK_SYMBOLS.keys()) + list(config.AKSHARE_BENCHMARKS.keys())
     if benchmark not in valid_benchmarks:
         raise HTTPException(
             status_code=400,
@@ -76,7 +78,7 @@ async def get_overview(
             final_value=result["final_value"],
             returns=ReturnMetrics(**result["returns"]),
             risk=RiskMetrics(**result["risk"]),
-            benchmark=BenchmarkComparison(**result["benchmark"]) if result["benchmark"] else None,
+            benchmark=BenchmarkMetrics(**result["benchmark"]) if result["benchmark"] else None,
         )
         
     except ValueError as e:

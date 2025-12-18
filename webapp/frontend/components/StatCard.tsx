@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpRight, ArrowDownRight, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface StatCardProps {
   title: string;
@@ -8,28 +8,43 @@ interface StatCardProps {
   trend?: 'up' | 'down' | 'neutral';
   icon?: React.ReactNode;
   className?: string;
+  iconBgColor?: string;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, icon, className }) => {
-  const trendColor = trend === 'up' ? 'text-green-500' : trend === 'down' ? 'text-red-500' : 'text-gray-500';
+export const StatCard: React.FC<StatCardProps> = ({ 
+  title, 
+  value, 
+  subValue, 
+  trend, 
+  icon, 
+  className,
+  iconBgColor = 'bg-blue-50'
+}) => {
+  const isUp = trend === 'up';
+  const isDown = trend === 'down';
+  const isNeutral = trend === 'neutral';
+  
+  // Colors based on the screenshot provided
+  const trendColor = isUp ? 'text-emerald-500' : isDown ? 'text-rose-500' : 'text-slate-400';
   
   return (
-    <div className={`bg-white rounded-xl p-6 shadow-sm border border-gray-100 ${className}`}>
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <h3 className="text-2xl font-bold text-gray-900 mt-2">{value}</h3>
-          {subValue && (
-            <p className={`text-sm mt-1 flex items-center ${trendColor}`}>
-              {trend === 'up' && <ArrowUpRight className="w-4 h-4 mr-1" />}
-              {trend === 'down' && <ArrowDownRight className="w-4 h-4 mr-1" />}
-              {subValue}
-            </p>
-          )}
-        </div>
-        <div className="p-2 bg-gray-50 rounded-lg text-gray-600">
-          {icon || <Activity className="w-5 h-5" />}
-        </div>
+    <div className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex justify-between items-center transition-all hover:shadow-md ${className}`}>
+      <div className="flex flex-col gap-1">
+        {/* Title Case requested: removed 'uppercase' */}
+        <p className="text-[13px] font-bold text-gray-400 tracking-tight">{title}</p>
+        <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight my-1">{value}</h3>
+        {subValue && (
+          <div className={`flex items-center gap-1.5 text-sm font-bold ${trendColor}`}>
+            {isUp && <TrendingUp className="w-4 h-4 stroke-[3]" />}
+            {isDown && <TrendingDown className="w-4 h-4 stroke-[3]" />}
+            {isNeutral && <Minus className="w-4 h-4 stroke-[3]" />}
+            <span>{subValue}</span>
+          </div>
+        )}
+      </div>
+      
+      <div className={`flex-shrink-0 w-14 h-14 flex items-center justify-center rounded-2xl ${iconBgColor}`}>
+        {icon}
       </div>
     </div>
   );

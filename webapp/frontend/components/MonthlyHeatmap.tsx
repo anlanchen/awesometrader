@@ -123,18 +123,18 @@ export const MonthlyHeatmap: React.FC<MonthlyHeatmapProps> = ({ data, equityData
 
     return (
       <div className="flex flex-col h-full animate-fade-in">
-         <div className="flex-none flex items-center gap-2 mb-3 text-sm text-gray-500 font-medium">
+         <div className="flex-none flex items-center gap-2 mb-3 text-sm text-gray-500 font-bold uppercase tracking-wide">
             <Calendar className="w-4 h-4" />
             <span>Daily Returns: {monthNames[selectedMonth - 1]} {selectedYear}</span>
          </div>
          
-         {/* Grid Container - No fixed height/scroll */}
+         {/* Grid Container */}
          <div className="grid grid-cols-7 gap-1.5 auto-rows-min">
             {weekDays.map(d => (
-                <div key={d} className="text-[10px] text-center text-gray-400 font-semibold uppercase mb-1">{d}</div>
+                <div key={d} className="text-[10px] text-center text-gray-400 font-bold uppercase mb-1">{d}</div>
             ))}
             {totalSlots.map((day, idx) => {
-                if (!day) return <div key={`blank-${idx}`} className="h-[70px]"></div>;
+                if (!day) return <div key={`blank-${idx}`} className="h-[88px]"></div>;
                 
                 const dayItem = monthDailyData.find(d => new Date(d.date).getDate() === day);
                 const val = dayItem?.pct;
@@ -144,7 +144,7 @@ export const MonthlyHeatmap: React.FC<MonthlyHeatmapProps> = ({ data, equityData
                 return (
                     <div 
                         key={day}
-                        className={`h-[70px] rounded-md flex flex-col items-center justify-center p-1 text-[10px] transition-all cursor-default group relative ${getColor(val)}`}
+                        className={`h-[88px] rounded-md flex flex-col items-center justify-center p-1 text-[10px] transition-all cursor-default group relative ${getColor(val)}`}
                     >
                         <span className={`font-bold text-[9px] ${hasData ? 'opacity-60' : 'opacity-40'}`}>{day}</span>
                         {hasData && (
@@ -152,7 +152,7 @@ export const MonthlyHeatmap: React.FC<MonthlyHeatmapProps> = ({ data, equityData
                                 <span className="font-bold tracking-tighter leading-none scale-95 mt-1">
                                     {val! > 0 ? '+' : ''}{(val! * 100).toFixed(2)}%
                                 </span>
-                                <span className="font-mono text-[9px] leading-none mt-1 opacity-90">
+                                <span className="font-mono text-[10px] font-bold leading-none mt-1.5 opacity-100">
                                     {pnl >= 0 ? '+' : ''}{formatCurrencyCompact(pnl)}
                                 </span>
                             </>
@@ -178,18 +178,18 @@ export const MonthlyHeatmap: React.FC<MonthlyHeatmapProps> = ({ data, equityData
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col min-h-full">
-      <div className="flex-none flex justify-between items-center mb-4">
-        <h3 className="text-lg font-bold text-gray-800">Performance Heatmap</h3>
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col min-h-full">
+      <div className="flex-none flex justify-between items-center mb-6">
+        <h3 className="text-xl font-extrabold text-gray-900 tracking-tight">Performance</h3>
       </div>
 
       {/* 1. Year Selector */}
-      <div className="flex-none mb-4">
-        <div className="flex-none flex items-center gap-2 mb-3 text-sm text-gray-500 font-medium">
+      <div className="flex-none mb-6">
+        <div className="flex-none flex items-center gap-2 mb-3 text-sm text-gray-500 font-bold uppercase tracking-wide">
             <Calendar className="w-4 h-4" />
             <span>Yearly Returns</span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-3">
             {years.map(year => {
                 const ytdObj = data.yearly_returns.find(item => Object.keys(item)[0] === year.toString());
                 const ytd = ytdObj ? ytdObj[year.toString()] : 0;
@@ -201,19 +201,19 @@ export const MonthlyHeatmap: React.FC<MonthlyHeatmapProps> = ({ data, equityData
                         key={year}
                         onClick={() => { setSelectedYear(year); setSelectedMonth(null); }}
                         className={`
-                            px-2 py-2 rounded-lg border transition-all flex flex-col h-14
+                            px-3 py-3 rounded-xl border transition-all flex flex-col h-16 justify-between
                             ${isSelected 
-                                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' 
-                                : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'}
+                                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500 shadow-sm' 
+                                : 'border-gray-100 bg-gray-50/50 hover:border-blue-200 hover:bg-gray-50'}
                         `}
                     >
                         <div className="flex items-center justify-between w-full">
-                             <span className={`text-xs font-bold ${isSelected ? 'text-blue-700' : 'text-gray-600'}`}>{year}</span>
-                             <span className={`text-xs font-bold ${ytd >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                             <span className={`text-xs font-bold ${isSelected ? 'text-blue-700' : 'text-gray-500'}`}>{year}</span>
+                             <span className={`text-[10px] font-extrabold ${ytd >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {ytd > 0 ? '+' : ''}{(ytd * 100).toFixed(2)}%
                              </span>
                         </div>
-                        <div className={`w-full text-right text-[10px] font-mono mt-auto ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <div className={`w-full text-right text-[12px] font-mono font-bold mt-1 ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                              {pnl > 0 ? '+' : ''}{formatCurrencyCompact(pnl)}
                         </div>
                     </button>
@@ -224,12 +224,12 @@ export const MonthlyHeatmap: React.FC<MonthlyHeatmapProps> = ({ data, equityData
 
       {/* 2. Monthly Grid - 3 Columns */}
       {selectedYear && (
-          <div className="flex-none mb-4 border-b border-gray-100 pb-4">
-            <div className="flex-none flex items-center gap-2 mb-3 text-sm text-gray-500 font-medium">
+          <div className="flex-none mb-6 border-b border-gray-100 pb-6">
+            <div className="flex-none flex items-center gap-2 mb-3 text-sm text-gray-500 font-bold uppercase tracking-wide">
                 <Calendar className="w-4 h-4" />
                 <span>Monthly Returns</span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-3">
                 {monthNames.map((name, idx) => {
                     const monthNum = idx + 1;
                     const val = getMonthlyReturn(selectedYear, monthNum);
@@ -241,20 +241,20 @@ export const MonthlyHeatmap: React.FC<MonthlyHeatmapProps> = ({ data, equityData
                             key={monthNum}
                             onClick={() => setSelectedMonth(monthNum)}
                             className={`
-                                h-12 rounded-lg flex flex-col px-2 transition-all relative
+                                h-14 rounded-xl flex flex-col px-3 py-2 transition-all relative justify-between
                                 ${getColor(val, isSelected)}
                             `}
                         >
-                            <div className="flex justify-between w-full items-baseline mt-1">
+                            <div className="flex justify-between w-full items-baseline">
                                 <span className={`text-[10px] font-bold uppercase ${val !== undefined ? (Math.abs(val) > 0.02 ? 'text-white/90' : 'text-gray-600') : ''}`}>
                                     {name}
                                 </span>
-                                <span className={`text-[10px] font-bold ${val !== undefined ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={`text-[10px] font-extrabold ${val !== undefined ? 'opacity-100' : 'opacity-0'}`}>
                                     {val !== undefined ? `${(val * 100).toFixed(2)}%` : '-'}
                                 </span>
                             </div>
                             {val !== undefined && (
-                                <div className={`w-full text-right text-[9px] font-mono leading-none mt-auto mb-1 ${Math.abs(val) > 0.02 ? 'text-white/90' : 'text-gray-500'}`}>
+                                <div className={`w-full text-right text-[11px] font-mono font-bold leading-none ${Math.abs(val) > 0.02 ? 'text-white/90' : 'text-gray-900'}`}>
                                      {pnl > 0 ? '+' : ''}{formatCurrencyCompact(pnl)}
                                 </div>
                             )}
