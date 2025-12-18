@@ -74,31 +74,70 @@ export const DailyReturnsChart: React.FC<ChartProps> = ({ data, title }) => {
   );
 };
 
-export const UnderwaterChart: React.FC<ChartProps> = ({ data, title }) => (
-  <div className="flex flex-col h-full bg-white border border-gray-100 rounded-xl p-5">
-    <h4 className="text-sm font-bold text-gray-700 mb-4 text-center">{title}</h4>
-    <div className="flex-grow">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-          <CartesianGrid vertical={false} {...chartStyles.grid} />
-          <XAxis 
-            dataKey="date" 
-            tick={chartStyles.axis} 
-            tickFormatter={formatDate} 
-            minTickGap={30}
-          />
-          <YAxis {...chartStyles.axis} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}>
-            <Label value="Drawdown Depth (%)" angle={-90} position="insideLeft" style={chartStyles.label} offset={0} />
-          </YAxis>
-          <Tooltip contentStyle={chartStyles.tooltip} labelFormatter={(l) => new Date(l).toLocaleDateString()} />
-          <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px' }} />
-          <Area type="step" dataKey="drawdown" stroke="#ef4444" fill="#fee2e2" fillOpacity={0.4} name="Strategy" />
-          <Area type="step" dataKey="benchmarkDrawdown" stroke="#94a3b8" fill="#f1f5f9" fillOpacity={0.2} name="Benchmark" />
-        </AreaChart>
-      </ResponsiveContainer>
+export const UnderwaterChart: React.FC<ChartProps> = ({ data, title }) => {
+  // 自定义 Tooltip
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const date = new Date(label).toLocaleDateString();
+      return (
+        <div style={chartStyles.tooltip} className="p-2 shadow-lg">
+          <p className="text-xs font-semibold text-gray-700 mb-1">{date}</p>
+          {payload.map((p: any, i: number) => (
+            <p key={i} className="text-xs" style={{ color: p.stroke }}>
+              {p.name}: {(p.value * 100).toFixed(2)}%
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-white border border-gray-100 rounded-xl p-5">
+      <h4 className="text-sm font-bold text-gray-700 mb-4 text-center">{title}</h4>
+      <div className="flex-grow">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+            <CartesianGrid vertical={false} {...chartStyles.grid} />
+            <XAxis 
+              dataKey="date" 
+              tick={chartStyles.axis} 
+              tickFormatter={formatDate} 
+              minTickGap={30}
+            />
+            <YAxis {...chartStyles.axis} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}>
+              <Label value="Drawdown Depth (%)" angle={-90} position="insideLeft" style={chartStyles.label} offset={0} />
+            </YAxis>
+            <Tooltip content={<CustomTooltip />} />
+            <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px' }} />
+            {/* Benchmark 回撤 - 灰色虚线边框 */}
+            <Area 
+              type="step" 
+              dataKey="benchmarkDrawdown" 
+              stroke="#64748b" 
+              strokeWidth={1.5}
+              strokeDasharray="4 2"
+              fill="#e2e8f0" 
+              fillOpacity={0.3} 
+              name="Benchmark" 
+            />
+            {/* Strategy 回撤 - 红色实线，更明显 */}
+            <Area 
+              type="step" 
+              dataKey="drawdown" 
+              stroke="#ef4444" 
+              strokeWidth={2}
+              fill="#fecaca" 
+              fillOpacity={0.5} 
+              name="Strategy" 
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const RollingMetricChart: React.FC<ChartProps & { dataKey: string; benchmarkKey?: string; color: string; baseline?: number; yAxisLabel: string }> = ({ 
   data, title, dataKey, benchmarkKey, color, baseline, yAxisLabel 
