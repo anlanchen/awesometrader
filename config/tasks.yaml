@@ -21,9 +21,6 @@ tasks:
     timezone: "Asia/Shanghai"
     args:
       - "account"
-      - "--adjust"
-      - "HKD"
-      - "515143.35"
     enabled: true
 
   # - name: "每日账户报告"
