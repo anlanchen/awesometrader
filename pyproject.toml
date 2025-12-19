@@ -44,4 +44,7 @@ dependencies = [
     "watchdog>=3.0.0", # 文件监控
     "ipython>=8.37.0",
     "py_vollib>=1.0.1", # 期权定价库 (Black-Scholes, Greeks, 隐含波动率)
+    # 用户认证
+    "python-jose[cryptography]>=3.3.0",  # JWT token
+    "passlib[bcrypt]>=1.7.4",  # 密码哈希
 ]

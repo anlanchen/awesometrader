@@ -5,6 +5,7 @@
 配置管理模块
 """
 
+import os
 from pathlib import Path
 from typing import Dict
 
@@ -55,6 +56,20 @@ class Config:
     
     # 无风险利率 (年化，用于夏普比率等计算)
     RISK_FREE_RATE = 0.036  # 3.6%
+    
+    # ============== 认证配置 ==============
+    # JWT 配置（必须通过环境变量设置）
+    SECRET_KEY = os.environ["SECRET_KEY"]  # JWT 签名密钥，必须设置
+    ALGORITHM = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 天
+    
+    # 用户配置（必须通过环境变量设置）
+    # 密码哈希使用 bcrypt，可以通过命令生成: python -c "from passlib.context import CryptContext; print(CryptContext(schemes=['bcrypt']).hash('your-password'))"
+    DEFAULT_USERNAME = os.environ["ADMIN_USERNAME"]  # 管理员用户名，必须设置
+    DEFAULT_PASSWORD_HASH = os.environ["ADMIN_PASSWORD_HASH"]  # 管理员密码哈希，必须设置
+    
+    # 是否启用 API 认证保护 (默认启用)
+    AUTH_ENABLED = os.getenv("AUTH_ENABLED", "true").lower() in ("true", "1", "yes")
 
 
 config = Config()

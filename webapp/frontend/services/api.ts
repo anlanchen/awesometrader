@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../constants';
+import { getStoredToken } from '../contexts/AuthContext';
 import { 
   OverviewResponse, 
   EquityCurveResponse, 
@@ -44,15 +45,30 @@ async function fetchJson<T>(endpoint: string, params: Record<string, string> = {
     }
   });
 
+  // 获取存储的 token 并添加到请求头
+  const token = getStoredToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   try {
     const response = await fetch(url.toString(), {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
 
     if (!response.ok) {
+      // 如果是 401 错误，可能需要重新登录
+      if (response.status === 401) {
+        // 清除无效的 token
+        localStorage.removeItem('awesometrader_token');
+        localStorage.removeItem('awesometrader_user');
+        // 刷新页面以触发重新登录
+        window.location.reload();
+      }
       throw new Error(`API Error: ${response.statusText}`);
     }
 

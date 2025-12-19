@@ -7,7 +7,9 @@ import {
   Activity, 
   JapaneseYen,
   Wallet,
-  CalendarDays
+  CalendarDays,
+  LogOut,
+  User
 } from 'lucide-react';
 
 import { 
@@ -19,14 +21,17 @@ import {
 } from './types';
 import { PERIOD_OPTIONS, BENCHMARK_OPTIONS } from './constants';
 import { api } from './services/api';
+import { useAuth } from './contexts/AuthContext';
 
 import { StatCard } from './components/StatCard';
 import { EquityChart } from './components/EquityChart';
 import { RiskMetrics } from './components/RiskMetrics';
 import { AssetChart } from './components/AssetChart';
 import { MonthlyHeatmap } from './components/MonthlyHeatmap';
+import { LoginPage } from './components/LoginPage';
 
 export default function App() {
+  const { isAuthenticated, isLoading: authLoading, user, login, logout, error: authError } = useAuth();
   const [period, setPeriod] = useState<string>('all');
   const [benchmark, setBenchmark] = useState<string>('sp500');
   const [loading, setLoading] = useState<boolean>(true);
@@ -78,9 +83,29 @@ export default function App() {
     }
   };
 
+  // useEffect 必须在所有条件返回之前调用
   useEffect(() => {
-    fetchData();
-  }, [period, benchmark]);
+    if (isAuthenticated) {
+      fetchData();
+    }
+  }, [period, benchmark, isAuthenticated]);
+
+  // 如果正在检查认证状态，显示加载
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 font-medium">加载中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 如果未认证，显示登录页面
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={login} error={authError} isLoading={authLoading} />;
+  }
 
   const formatProfit = (val: number) => {
     const inK = val / 1000;
@@ -105,6 +130,22 @@ export default function App() {
               <div className="hidden md:flex items-center text-sm font-medium text-gray-500 bg-gray-100/50 px-3 py-1.5 rounded-full border border-gray-100">
                 <span className={`w-2 h-2 rounded-full mr-2 ${loading ? 'bg-yellow-400 animate-pulse' : 'bg-green-500'}`}></span>
                 {loading ? 'Refreshing...' : 'System Active'}
+              </div>
+              
+              {/* 用户信息和登出按钮 */}
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                  <User className="w-4 h-4 text-gray-500" />
+                  <span className="font-medium">{user?.username}</span>
+                </div>
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full border border-gray-100 hover:border-red-200 transition-all"
+                  title="登出"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">登出</span>
+                </button>
               </div>
             </div>
           </div>

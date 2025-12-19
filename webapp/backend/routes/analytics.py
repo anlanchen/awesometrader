@@ -5,10 +5,12 @@
 分析 API 路由
 """
 
-from fastapi import APIRouter, Query, HTTPException
-from typing import Optional
+from typing import Optional, Annotated
+
+from fastapi import APIRouter, Query, HTTPException, Depends
 from loguru import logger
 
+from ..services.auth_service import get_current_user, User
 from ..models.schemas import (
     OverviewResponse,
     ReturnsResponse,
@@ -29,7 +31,15 @@ from ..services.data_loader import data_loader
 from ..config import config
 
 
-router = APIRouter(prefix="/analytics", tags=["Analytics"])
+# 根据配置决定是否添加认证依赖
+if config.AUTH_ENABLED:
+    router = APIRouter(
+        prefix="/analytics",
+        tags=["Analytics"],
+        dependencies=[Depends(get_current_user)]  # 所有路由需要认证
+    )
+else:
+    router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
 def validate_period(period: str) -> str:
@@ -318,11 +328,15 @@ async def get_benchmarks():
     """获取所有可用的基准指数选项"""
     return {
         "benchmarks": [
+            # yfinance 数据源
             {"code": "sp500", "name": "标普500", "symbol": "^GSPC"},
             {"code": "nasdaq100", "name": "纳斯达克100", "symbol": "^NDX"},
-            {"code": "csi300", "name": "沪深300", "symbol": "000300.SS"},
-            {"code": "a500", "name": "中证500ETF", "symbol": "510500.SS"},
-            {"code": "hstech", "name": "恒生科技ETF", "symbol": "3032.HK"},
+            {"code": "btc", "name": "比特币", "symbol": "BTC-USD"},
+            {"code": "gold", "name": "黄金期货", "symbol": "GC=F"},
+            # akshare 数据源
+            {"code": "csi300", "name": "沪深300", "symbol": "000300"},
+            {"code": "a500", "name": "中证A500", "symbol": "000510"},
+            {"code": "hstech", "name": "恒生科技", "symbol": "HSTECH"},
         ]
     }
 

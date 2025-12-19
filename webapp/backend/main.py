@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from .config import config
-from .routes import analytics_router
+from .routes import analytics_router, auth_router
 
 
 # 创建 FastAPI 应用
@@ -33,6 +33,7 @@ app.add_middleware(
 
 
 # 注册路由
+app.include_router(auth_router, prefix=config.API_PREFIX)
 app.include_router(analytics_router, prefix=config.API_PREFIX)
 
 
