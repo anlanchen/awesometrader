@@ -40,11 +40,14 @@ dependencies = [
     "fastapi>=0.104.0", # Web API 框架
     "uvicorn[standard]>=0.24.0", # ASGI 服务器
     "quantstats>=0.0.62", # 量化分析指标
-    "yfinance>=0.2.31", # 获取基准指数数据
+    "yfinance>=0.2.31", # 获取基准指数数据 (美股)
+    "akshare>=1.12.0", # 获取 A股/港股 基准指数数据
     "watchdog>=3.0.0", # 文件监控
     "ipython>=8.37.0",
     "py_vollib>=1.0.1", # 期权定价库 (Black-Scholes, Greeks, 隐含波动率)
     # 用户认证
     "python-jose[cryptography]>=3.3.0",  # JWT token
     "passlib[bcrypt]>=1.7.4",  # 密码哈希
+    "bcrypt>=4.0.0",  # bcrypt (passlib 使用)
+    "python-multipart>=0.0.9",  # Form data 解析 (FastAPI OAuth2 需要)
 ]

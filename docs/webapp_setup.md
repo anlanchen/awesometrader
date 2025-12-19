@@ -35,6 +35,8 @@ python -c "import bcrypt; print(bcrypt.hashpw('your-password'.encode(), bcrypt.g
 
 #### 创建 .env 文件
 
+> ⚠️ **重要**：bcrypt 哈希包含 `$` 符号，在 shell 中会被解释为变量。**必须用单引号包裹密码哈希**！
+
 ```bash
 cat > .env << 'EOF'
 # JWT 签名密钥（使用上面生成的随机密钥）
@@ -43,8 +45,8 @@ SECRET_KEY=your-random-secret-key-here
 # 管理员用户名
 ADMIN_USERNAME=admin
 
-# 管理员密码哈希（使用上面生成的 bcrypt 哈希）
-ADMIN_PASSWORD_HASH=$2b$12$xxxxxx...
+# 管理员密码哈希（必须用单引号包裹！）
+ADMIN_PASSWORD_HASH='$2b$12$xxxxxx...'
 EOF
 ```
 
@@ -55,10 +57,11 @@ EOF
 SECRET=$(python -c "import secrets; print(secrets.token_hex(32))")
 HASH=$(python -c "import bcrypt; print(bcrypt.hashpw('admin123'.encode(), bcrypt.gensalt()).decode())")
 
+# 注意：密码哈希必须用单引号包裹，防止 $ 被解释
 cat > .env << EOF
 SECRET_KEY=$SECRET
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD_HASH=$HASH
+ADMIN_PASSWORD_HASH='$HASH'
 EOF
 
 echo "✅ .env 文件已生成，用户名: admin，密码: admin123"
@@ -114,10 +117,11 @@ cd webapp/frontend && npm run dev
 SECRET=$(openssl rand -hex 32)
 HASH=$(python -c "import bcrypt; print(bcrypt.hashpw('YourStrongPassword'.encode(), bcrypt.gensalt()).decode())")
 
+# 注意：密码哈希必须用单引号包裹
 cat > .env << EOF
 SECRET_KEY=$SECRET
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD_HASH=$HASH
+ADMIN_PASSWORD_HASH='$HASH'
 AUTH_ENABLED=true
 EOF
 ```
@@ -147,6 +151,7 @@ uvicorn webapp.backend.main:app --host 0.0.0.0 --port 8000 --workers 4
 | 无法连接 API | 确保 Backend 在 8000 端口运行 |
 | 数据显示为空 | 运行 `python tasks/account_reporter.py` 生成数据 |
 | 忘记密码 | 重新设置 `ADMIN_PASSWORD_HASH` 并重启 |
+| 登录报错 "Invalid salt" | 密码哈希必须用单引号包裹：`ADMIN_PASSWORD_HASH='$2b$...'` |
 
 ---
 
