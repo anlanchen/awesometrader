@@ -38,7 +38,8 @@ interface BackendReturnsResponse {
 }
 
 async function fetchJson<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
-  const url = new URL(`${API_BASE_URL}${endpoint}`);
+  // 使用当前页面的 origin 构建完整 URL（支持相对路径）
+  const url = new URL(`${API_BASE_URL}${endpoint}`, window.location.origin);
   Object.keys(params).forEach(key => {
     if (params[key]) {
       url.searchParams.append(key, params[key]);
