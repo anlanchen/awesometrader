@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
-        allowedHosts: 'all',  // 允许所有域名访问（内网穿透场景）
+        allowedHosts: true,  // 允许所有域名访问（内网穿透场景）
       },
       plugins: [react()],
       define: {
