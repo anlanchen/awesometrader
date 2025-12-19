@@ -1,9 +1,9 @@
 import { SelectOption } from './types';
 
 // API Configuration
-// Assuming the backend is running on localhost:8000. 
-// In production, this would be an environment variable.
-export const API_BASE_URL = 'http://localhost:8000/api';
+// 使用相对路径，自动适配当前域名（内网穿透等场景）
+// 开发环境需要配置 vite proxy，或者前后端同源部署
+export const API_BASE_URL = '/api';
 
 export const PERIOD_OPTIONS: SelectOption[] = [
   { label: '7D', value: '7d' },

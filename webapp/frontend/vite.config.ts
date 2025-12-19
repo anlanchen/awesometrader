@@ -9,6 +9,13 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
         allowedHosts: true,  // 允许所有域名访问（内网穿透场景）
+        proxy: {
+          // 将 /api 请求代理到后端服务
+          '/api': {
+            target: 'http://localhost:8000',
+            changeOrigin: true,
+          },
+        },
       },
       plugins: [react()],
       define: {
