@@ -221,8 +221,8 @@ class LongPortTradeCLI:
                 logger.error("无法获取账户余额信息")
                 return {}
 
-            # 获取汇率
-            exchange_rates = self.exchange_rate_service.get_exchange_rates(currency)
+            # 获取汇率（以 CNH 为基准）
+            exchange_rates = self.exchange_rate_service.get_exchange_rates()
 
             # 计算所有币种现金余额（折算到目标币种）
             total_cash_balance = 0.0
@@ -533,12 +533,12 @@ class LongPortTradeCLI:
             output_lines.append(f"展示币种: {currency}")
             output_lines.append("")
             
-            # 汇率信息
+            # 汇率信息（以 CNH 为基准）
             output_lines.append("【汇率信息】")
             output_lines.append("-" * 80)
             for curr, rate in metrics.get('exchange_rates', {}).items():
-                if curr != currency:
-                    output_lines.append(f"  1 {curr} = {rate:.4f} {currency}")
+                if curr != 'CNH':
+                    output_lines.append(f"  1 {curr} = {rate:.4f} CNH")
             output_lines.append("")
             
             output_lines.append("【账户概览】")

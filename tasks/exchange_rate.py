@@ -4,22 +4,26 @@
 汇率查询工具
 
 提供汇率获取、币种转换等功能，支持 USD, HKD, CNH 三种币种。
+基准货币固定为 CNH（人民币）。
+使用 akshare 从中国外汇交易中心获取人民币外汇即期报价数据。
+数据来源: http://www.chinamoney.com.cn/chinese/mkdatapfx/
 """
 
 import os
 import sys
 import argparse
-import requests
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Dict, Optional
 from loguru import logger
+
+import akshare as ak
 
 # 添加项目根目录到Python路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class ExchangeRateService:
-    """汇率服务类"""
+    """汇率服务类，基准货币固定为 CNH（人民币）"""
 
     # 币种与市场的映射关系
     MARKET_CURRENCY_MAP = {
@@ -27,184 +31,186 @@ class ExchangeRateService:
         'HK': 'HKD',
         'CN': 'CNH',
     }
-    
+
+    # 默认汇率（当 API 调用失败时使用）
+    DEFAULT_RATES = {
+        'USD': 7.10,  # 1 USD = 7.10 CNH
+        'HKD': 0.91,  # 1 HKD = 0.91 CNH
+        'CNH': 1.0,
+    }
+
     def __init__(self):
         """初始化汇率服务"""
-
-        # 汇率缓存，以基准币种为key，包含汇率数据和时间戳
-        # 结构: {base_currency: {'rates': {...}, 'timestamp': datetime}}
-        self._exchange_rates: Dict[str, Dict[str, Any]] = {}
-
+        # 汇率缓存: {'USD': 7.10, 'HKD': 0.91, 'CNH': 1.0}
+        self._rates: Optional[Dict[str, float]] = None
+        # 缓存时间戳
+        self._cache_time: Optional[datetime] = None
         # 缓存有效期（1天）
         self._cache_ttl = timedelta(days=1)
 
         logger.info("汇率服务初始化完成")
-    
-    def get_exchange_rates(self, base_currency: str = 'CNH') -> Dict[str, float]:
+
+    def _fetch_fx_spot_rates(self) -> Optional[Dict[str, float]]:
         """
-        获取汇率数据
-        
-        Args:
-            base_currency: 基准币种 (USD, HKD, CNH)，所有汇率以此币种为基准
-            
+        从中国外汇交易中心获取人民币外汇即期报价
+
+        数据来源: http://www.chinamoney.com.cn/chinese/mkdatapfx/
+
         Returns:
-            Dict[str, float]: 汇率字典，key为币种，value为对基准币种的汇率
+            Dict[str, float]: 汇率字典，key 为币种代码，value 为 1 单位该币种 = 多少人民币
+            例如：{'USD': 7.10, 'HKD': 0.91, 'CNH': 1.0}
         """
         try:
-            # 如果已缓存且未过期，直接返回
-            if base_currency in self._exchange_rates:
-                cache_data = self._exchange_rates[base_currency]
-                cache_time = cache_data.get('timestamp')
-                if cache_time and datetime.now() - cache_time < self._cache_ttl:
-                    return cache_data['rates']
-                else:
-                    logger.info(f"缓存已过期，重新获取汇率数据，基准币种: {base_currency}")
+            logger.info("正在从中国外汇交易中心获取人民币外汇即期报价...")
 
-            logger.info(f"正在获取汇率数据，基准币种: {base_currency}")
-            
-            # 使用免费的汇率API（exchangerate-api.com）
-            # CNH需要映射为CNY
-            api_base = 'CNY' if base_currency == 'CNH' else base_currency
-            url = f"https://api.exchangerate-api.com/v4/latest/{api_base}"
-            
-            response = requests.get(url, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                rates = data.get('rates', {})
-                
-                # 构建汇率字典（相对于base_currency）
-                rates_data = {}
-                if base_currency == 'CNH':
-                    rates_data = {
-                        'USD': rates.get('USD', 0.141),
-                        'HKD': rates.get('HKD', 1.1),
-                        'CNH': 1.0,
-                    }
-                elif base_currency == 'USD':
-                    rates_data = {
-                        'USD': 1.0,
-                        'HKD': rates.get('HKD', 7.78),
-                        'CNH': rates.get('CNY', 7.06),
-                    }
-                elif base_currency == 'HKD':
-                    rates_data = {
-                        'USD': rates.get('USD', 0.129),
-                        'HKD': 1.0,
-                        'CNH': rates.get('CNY', 0.908),
-                    }
+            df = ak.fx_spot_quote()
 
-                # 保存汇率数据和时间戳
-                self._exchange_rates[base_currency] = {
-                    'rates': rates_data,
-                    'timestamp': datetime.now()
-                }
+            if df.empty:
+                logger.warning("获取的外汇即期报价数据为空")
+                return None
 
-                logger.success(f"成功获取汇率数据: {rates_data}")
-                return rates_data
-            else:
-                logger.warning(f"获取汇率失败，使用默认汇率，HTTP状态码: {response.status_code}")
-                return self._get_default_exchange_rates(base_currency)
-                
+            # 解析货币对，提取 USD/CNY 和 HKD/CNY 的汇率
+            usd_rate = None
+            hkd_rate = None
+
+            for _, row in df.iterrows():
+                currency_pair = str(row['货币对']).strip()
+                # 使用买报价和卖报价的中间价
+                buy_price = float(row['买报价'])
+                sell_price = float(row['卖报价'])
+                mid_price = (buy_price + sell_price) / 2
+
+                if currency_pair == 'USD/CNY':
+                    usd_rate = mid_price
+                elif currency_pair == 'HKD/CNY':
+                    hkd_rate = mid_price
+
+                if usd_rate is not None and hkd_rate is not None:
+                    break
+
+            # 使用默认值填充缺失的汇率
+            if usd_rate is None:
+                logger.warning(f"未找到 USD/CNY 汇率，使用默认值 {self.DEFAULT_RATES['USD']}")
+                usd_rate = self.DEFAULT_RATES['USD']
+            if hkd_rate is None:
+                logger.warning(f"未找到 HKD/CNY 汇率，使用默认值 {self.DEFAULT_RATES['HKD']}")
+                hkd_rate = self.DEFAULT_RATES['HKD']
+
+            rates = {
+                'USD': usd_rate,
+                'HKD': hkd_rate,
+                'CNH': 1.0,
+            }
+
+            logger.success(f"成功获取汇率: 1 USD = {usd_rate:.4f} CNH, 1 HKD = {hkd_rate:.4f} CNH")
+            return rates
+
         except Exception as e:
-            logger.warning(f"获取汇率数据失败: {e}，使用默认汇率")
-            return self._get_default_exchange_rates(base_currency)
-    
-    def _get_default_exchange_rates(self, base_currency: str) -> Dict[str, float]:
-        """获取默认汇率（当API调用失败时使用）"""
-        if base_currency == 'CNH':
-            return {
-                'USD': 0.141, 
-                'HKD': 1.1,
-                'CNH': 1.0,
-            }
-        elif base_currency == 'USD':
-            return {
-                'USD': 1.0,
-                'HKD': 7.78,
-                'CNH': 7.06,
-            }
-        elif base_currency == 'HKD':
-            return {
-                'USD': 0.129,
-                'HKD': 1.0,
-                'CNH': 0.908,
-            }
+            logger.warning(f"获取外汇即期报价失败: {e}")
+            return None
+
+    def get_exchange_rates(self) -> Dict[str, float]:
+        """
+        获取汇率数据（以 CNH 为基准）
+
+        Returns:
+            Dict[str, float]: 汇率字典，表示 1 单位该币种 = 多少 CNH
+        """
+        # 检查缓存是否有效
+        if self._rates and self._cache_time:
+            if datetime.now() - self._cache_time < self._cache_ttl:
+                return self._rates
+            else:
+                logger.info("缓存已过期，重新获取汇率数据")
+
+        logger.info("正在获取汇率数据...")
+
+        rates = self._fetch_fx_spot_rates()
+
+        if rates:
+            self._rates = rates
+            self._cache_time = datetime.now()
+            logger.success(f"成功获取汇率数据: {rates}")
+            return rates
         else:
-            return {
-                'USD': 1.0,
-                'HKD': 1.0,
-                'CNH': 1.0,
-            }
-    
+            logger.warning("获取汇率失败，使用默认汇率")
+            return self.DEFAULT_RATES.copy()
+
+    def convert_to_cnh(self, amount: float, from_currency: str) -> float:
+        """
+        将指定币种金额转换为人民币
+
+        Args:
+            amount: 金额
+            from_currency: 源币种 (USD, HKD, CNH)
+
+        Returns:
+            float: 转换后的人民币金额
+        """
+        if from_currency == 'CNH':
+            return amount
+
+        rates = self.get_exchange_rates()
+        rate = rates.get(from_currency, 1.0)
+        return amount * rate
+
     def convert_currency(self, amount: float, from_currency: str, to_currency: str) -> float:
         """
         币种转换
-        
+
         Args:
             amount: 金额
-            from_currency: 源币种
-            to_currency: 目标币种
-            
-        Returns:x
+            from_currency: 源币种 (USD, HKD, CNH)
+            to_currency: 目标币种 (USD, HKD, CNH)
+
+        Returns:
             float: 转换后的金额
         """
         if from_currency == to_currency:
             return amount
-        
-        rates = self.get_exchange_rates(from_currency)
-        rate = rates.get(to_currency, 1.0)
-        return amount * rate
-    
+
+        rates = self.get_exchange_rates()
+
+        # 先转换为 CNH，再转换为目标币种
+        cnh_amount = amount * rates.get(from_currency, 1.0)
+        target_rate = rates.get(to_currency, 1.0)
+
+        return cnh_amount / target_rate
+
     def clear_cache(self) -> None:
         """清除汇率缓存"""
-        self._exchange_rates = {}
+        self._rates = None
+        self._cache_time = None
         logger.info("汇率缓存已清除")
 
-    def query_exchange_rates(self, base_currency: str = 'CNH') -> None:
-        """
-        查询并显示汇率信息
-        
-        Args:
-            base_currency: 基准币种 (USD, HKD, CNH)，默认为 CNH
-        """
+    def query_exchange_rates(self) -> None:
+        """查询并显示汇率信息"""
         try:
-            logger.info(f"开始查询汇率，基准币种: {base_currency}")
-            
+            logger.info("开始查询汇率...")
+
             # 清除缓存以获取最新汇率
             self.clear_cache()
-            rates = self.get_exchange_rates(base_currency)
-            
+            rates = self.get_exchange_rates()
+
             if not rates:
                 logger.warning("未能获取汇率信息")
                 return
-            
-            # 格式化输出内容
-            output_lines = []
-            output_lines.append("=" * 60)
-            output_lines.append("汇率信息")
-            output_lines.append("=" * 60)
-            output_lines.append(f"查询时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            output_lines.append(f"基准币种: {base_currency}")
-            output_lines.append("")
-            output_lines.append(f"【当前汇率】(其他货币 -> {base_currency})")
-            output_lines.append("-" * 60)
-            
-            for curr, rate in rates.items():
-                if curr != base_currency:
-                    # 其他货币兑换成基准币种的汇率
-                    output_lines.append(f"  {rate:.3f}  {curr} = 1 {base_currency}")
 
-            output_lines.append("")
-            output_lines.append("=" * 60)
-            
-            output_content = "\n".join(output_lines)
-
-            # 输出到控制台
-            print(output_content)
+            # 格式化输出
+            print("=" * 50)
+            print("人民币外汇即期报价")
+            print("=" * 50)
+            print(f"查询时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"数据来源: 中国外汇交易中心")
+            print("-" * 50)
+            print(f"  1 USD = {rates['USD']:.4f} CNH")
+            print(f"  1 HKD = {rates['HKD']:.4f} CNH")
+            print("=" * 50)
 
         except Exception as e:
             logger.error(f"查询汇率失败: {e}")
-    
+
+
 def main():
     """主函数"""
     # 配置日志
@@ -214,8 +220,8 @@ def main():
         format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
         level="INFO"
     )
-    
-    # 创建主解析器
+
+    # 创建解析器
     parser = argparse.ArgumentParser(
         description="汇率查询工具 CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -223,44 +229,30 @@ def main():
 示例:
   # 查询汇率（以人民币为基准）
   python exchange_rate.py rates
-  
-  # 查询汇率（以美元为基准）
-  python exchange_rate.py rates --base-currency USD
 """
     )
-    
+
     # 创建子命令解析器
     subparsers = parser.add_subparsers(dest="command", help="可用命令")
-    
+
     # 子命令: rates
-    parser_rates = subparsers.add_parser(
-        "rates",
-        help="查询当前汇率"
-    )
-    parser_rates.add_argument(
-        "--base-currency",
-        choices=['USD', 'HKD', 'CNH'],
-        default='CNH',
-        help="基准币种，所有汇率以此币种为基准 (可选: USD, HKD, CNH，默认: CNH)"
-    )
-    
+    subparsers.add_parser("rates", help="查询当前汇率")
+
     # 解析参数
     args = parser.parse_args()
-    
+
     # 如果没有提供命令，显示帮助信息
     if not args.command:
         parser.print_help()
         sys.exit(0)
-    
-    # 初始化服务
+
+    # 执行命令
     try:
         service = ExchangeRateService()
-        
-        # 执行对应的命令
+
         if args.command == "rates":
-            service.query_exchange_rates(base_currency=args.base_currency)
-        
-    
+            service.query_exchange_rates()
+
     except KeyboardInterrupt:
         logger.info("用户中断操作")
         sys.exit(0)
