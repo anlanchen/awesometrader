@@ -17,6 +17,7 @@ from typing import Dict, Optional
 from loguru import logger
 
 import akshare as ak
+import pandas as pd
 
 # 添加项目根目录到Python路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -109,6 +110,64 @@ class ExchangeRateService:
             logger.warning(f"获取外汇即期报价失败: {e}")
             return None
 
+    def _fetch_boc_safe_rates(self) -> Optional[Dict[str, float]]:
+        """
+        从外汇管理局获取人民币汇率中间价（备用数据源）
+
+        数据来源: https://www.safe.gov.cn/safe/rmbhlzjj/index.html
+
+        Returns:
+            Dict[str, float]: 汇率字典，key 为币种代码，value 为 1 单位该币种 = 多少人民币
+            例如：{'USD': 7.10, 'HKD': 0.91, 'CNH': 1.0}
+        """
+        try:
+            logger.info("正在从外汇管理局获取人民币汇率中间价...")
+
+            df = ak.currency_boc_safe()
+
+            if df.empty:
+                logger.warning("获取的人民币汇率中间价数据为空")
+                return None
+
+            # 获取最新一条数据（按日期排序后取最后一条）
+            df = df.sort_values('日期', ascending=True)
+            latest_row = df.iloc[-1]
+
+            logger.info(f"获取到最新汇率日期: {latest_row['日期']}")
+
+            # 解析 USD 和 HKD 汇率
+            # 注意：美元和港元采用直接标价法，即 100 外币 = 多少人民币
+            usd_rate = None
+            hkd_rate = None
+
+            if '美元' in df.columns and pd.notna(latest_row['美元']):
+                # 100 USD = latest_row['美元'] CNH，所以 1 USD = latest_row['美元'] / 100
+                usd_rate = float(latest_row['美元']) / 100
+            if '港元' in df.columns and pd.notna(latest_row['港元']):
+                # 100 HKD = latest_row['港元'] CNH，所以 1 HKD = latest_row['港元'] / 100
+                hkd_rate = float(latest_row['港元']) / 100
+
+            # 使用默认值填充缺失的汇率
+            if usd_rate is None:
+                logger.warning(f"未找到美元汇率中间价，使用默认值 {self.DEFAULT_RATES['USD']}")
+                usd_rate = self.DEFAULT_RATES['USD']
+            if hkd_rate is None:
+                logger.warning(f"未找到港元汇率中间价，使用默认值 {self.DEFAULT_RATES['HKD']}")
+                hkd_rate = self.DEFAULT_RATES['HKD']
+
+            rates = {
+                'USD': usd_rate,
+                'HKD': hkd_rate,
+                'CNH': 1.0,
+            }
+
+            logger.success(f"成功从外汇管理局获取汇率: 1 USD = {usd_rate:.4f} CNH, 1 HKD = {hkd_rate:.4f} CNH")
+            return rates
+
+        except Exception as e:
+            logger.warning(f"获取人民币汇率中间价失败: {e}")
+            return None
+
     def get_exchange_rates(self) -> Dict[str, float]:
         """
         获取汇率数据（以 CNH 为基准）
@@ -125,6 +184,7 @@ class ExchangeRateService:
 
         logger.info("正在获取汇率数据...")
 
+        # 首先尝试从中国外汇交易中心获取即期报价
         rates = self._fetch_fx_spot_rates()
 
         if rates:
@@ -132,9 +192,20 @@ class ExchangeRateService:
             self._cache_time = datetime.now()
             logger.success(f"成功获取汇率数据: {rates}")
             return rates
-        else:
-            logger.warning("获取汇率失败，使用默认汇率")
-            return self.DEFAULT_RATES.copy()
+
+        # 如果失败，尝试从外汇管理局获取汇率中间价作为备用
+        logger.info("尝试使用备用数据源（外汇管理局）...")
+        rates = self._fetch_boc_safe_rates()
+
+        if rates:
+            self._rates = rates
+            self._cache_time = datetime.now()
+            logger.success(f"成功从备用数据源获取汇率数据: {rates}")
+            return rates
+
+        # 如果都失败，使用默认汇率
+        logger.warning("所有数据源获取汇率失败，使用默认汇率")
+        return self.DEFAULT_RATES.copy()
 
     def convert_to_cnh(self, amount: float, from_currency: str) -> float:
         """
