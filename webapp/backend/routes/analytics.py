@@ -55,8 +55,7 @@ def validate_period(period: str) -> str:
 
 def validate_benchmark(benchmark: str) -> str:
     """验证基准参数"""
-    # 合并 yfinance 和 akshare 两个数据源的基准
-    valid_benchmarks = list(config.BENCHMARK_SYMBOLS.keys()) + list(config.AKSHARE_BENCHMARKS.keys())
+    valid_benchmarks = list(config.AKSHARE_BENCHMARKS.keys())
     if benchmark not in valid_benchmarks:
         raise HTTPException(
             status_code=400,
@@ -325,18 +324,13 @@ async def get_periods():
 
 @router.get("/benchmarks", summary="获取可用的基准指数")
 async def get_benchmarks():
-    """获取所有可用的基准指数选项"""
-    return {
-        "benchmarks": [
-            # yfinance 数据源
-            {"code": "sp500", "name": "标普500", "symbol": "^GSPC"},
-            {"code": "nasdaq100", "name": "纳斯达克100", "symbol": "^NDX"},
-            {"code": "btc", "name": "比特币", "symbol": "BTC-USD"},
-            {"code": "gold", "name": "黄金期货", "symbol": "GC=F"},
-            # akshare 数据源
-            {"code": "csi300", "name": "沪深300", "symbol": "000300"},
-            {"code": "a500", "name": "中证A500", "symbol": "000510"},
-            {"code": "hstech", "name": "恒生科技", "symbol": "HSTECH"},
-        ]
-    }
+    """获取所有可用的基准指数选项（数据源：akshare）"""
+    benchmarks = []
+    for code, info in config.AKSHARE_BENCHMARKS.items():
+        benchmarks.append({
+            "code": code,
+            "name": info["name"],
+            "symbol": info["symbol"],
+        })
+    return {"benchmarks": benchmarks}
 

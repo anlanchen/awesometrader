@@ -21,6 +21,4 @@ export const BENCHMARK_OPTIONS: SelectOption[] = [
   { label: '沪深300', value: 'csi300' },
   { label: '中证A500', value: 'a500' },
   { label: '恒生科技', value: 'hstech' },
-  { label: '比特币', value: 'btc' },
-  { label: '黄金', value: 'gold' },
 ];

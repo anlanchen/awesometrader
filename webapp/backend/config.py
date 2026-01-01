@@ -27,19 +27,15 @@ class Config:
     API_TITLE = "AwesomeTrader Analytics API"
     API_VERSION = "1.0.0"
     
-    # 基准指数配置
-    # yfinance 数据源
-    BENCHMARK_SYMBOLS: Dict[str, str] = {
-        "sp500": "^GSPC",        # 标普500
-        "nasdaq100": "^NDX",     # 纳斯达克100
-        "btc": "BTC-USD",        # 比特币
-        "gold": "GC=F",          # 黄金期货
-    }
-    
-    # akshare 数据源 (中国/港股指数，yfinance 支持不完整)
+    # 基准指数配置 - 全部使用 akshare 数据源
     AKSHARE_BENCHMARKS: Dict[str, Dict] = {
+        # 美股指数 (新浪财经)
+        "sp500": {"symbol": ".INX", "type": "us_index", "name": "标普500"},
+        "nasdaq100": {"symbol": ".NDX", "type": "us_index", "name": "纳斯达克100"},
+        # A股指数
         "csi300": {"symbol": "000300", "type": "a_index", "name": "沪深300"},
         "a500": {"symbol": "000510", "type": "a_index", "name": "中证A500"},
+        # 港股指数
         "hstech": {"symbol": "HSTECH", "type": "hk_index", "name": "恒生科技"},
     }
     

@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-基准指数服务 - 使用 yfinance 和 akshare 获取基准指数数据
+基准指数服务 - 使用 akshare 获取基准指数数据
 """
 
 import pandas as pd
-import yfinance as yf
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 from loguru import logger
@@ -30,10 +29,6 @@ class BenchmarkService:
             return False
         return datetime.now() - self._cache_time[cache_key] < self._cache_ttl
     
-    def _is_akshare_benchmark(self, benchmark: str) -> bool:
-        """检查是否使用 akshare 数据源"""
-        return benchmark.lower() in config.AKSHARE_BENCHMARKS
-    
     def get_benchmark_symbol(self, benchmark: str) -> str:
         """
         获取基准指数的符号
@@ -43,32 +38,20 @@ class BenchmarkService:
         """
         benchmark_lower = benchmark.lower()
         
-        # 先检查 akshare 配置
         if benchmark_lower in config.AKSHARE_BENCHMARKS:
             return config.AKSHARE_BENCHMARKS[benchmark_lower]["symbol"]
         
-        # 再检查 yfinance 配置
-        symbol = config.BENCHMARK_SYMBOLS.get(benchmark_lower)
-        if not symbol:
-            all_benchmarks = list(config.BENCHMARK_SYMBOLS.keys()) + list(config.AKSHARE_BENCHMARKS.keys())
-            raise ValueError(f"未知的基准指数: {benchmark}，可选: {all_benchmarks}")
-        return symbol
+        all_benchmarks = list(config.AKSHARE_BENCHMARKS.keys())
+        raise ValueError(f"未知的基准指数: {benchmark}，可选: {all_benchmarks}")
     
     def get_benchmark_name(self, benchmark: str) -> str:
         """获取基准指数的中文名称"""
         benchmark_lower = benchmark.lower()
         
-        # 先检查 akshare 配置
         if benchmark_lower in config.AKSHARE_BENCHMARKS:
             return config.AKSHARE_BENCHMARKS[benchmark_lower]["name"]
         
-        names = {
-            "sp500": "标普500",
-            "nasdaq100": "纳斯达克100",
-            "btc": "比特币",
-            "gold": "黄金",
-        }
-        return names.get(benchmark_lower, benchmark)
+        return benchmark
     
     def _fetch_akshare_data(
         self,
@@ -100,49 +83,84 @@ class BenchmarkService:
         try:
             if index_type == "a_index":
                 # A股指数
-                start_str = start_date.strftime('%Y%m%d')
-                end_str = end_date.strftime('%Y%m%d')
-                logger.info(f"从 akshare 获取 A股指数 {symbol}: {start_str} - {end_str}")
-                
-                df = ak.index_zh_a_hist(symbol=symbol, period='daily', start_date=start_str, end_date=end_str)
-                
-                if df.empty:
-                    return pd.Series(dtype=float)
-                
-                # 转换为标准格式
-                prices = pd.Series(df['收盘'].values, index=pd.to_datetime(df['日期']))
-                prices.name = benchmark
+                prices = self._fetch_a_index(ak, symbol, start_date, end_date, benchmark)
                 
             elif index_type == "hk_index":
                 # 港股指数
-                logger.info(f"从 akshare 获取港股指数 {symbol}")
+                prices = self._fetch_hk_index(ak, symbol, start_date, end_date, benchmark)
                 
-                df = ak.stock_hk_index_daily_em(symbol=symbol)
+            elif index_type == "us_index":
+                # 美股指数 (新浪财经)
+                prices = self._fetch_us_index(ak, symbol, start_date, end_date, benchmark)
                 
-                if df.empty:
-                    return pd.Series(dtype=float)
-                
-                # 过滤日期范围
-                start_str = start_date.strftime('%Y-%m-%d')
-                end_str = end_date.strftime('%Y-%m-%d')
-                df = df[(df['date'] >= start_str) & (df['date'] <= end_str)]
-                
-                if df.empty:
-                    return pd.Series(dtype=float)
-                
-                # 转换为标准格式 (港股使用 'latest' 列作为收盘价)
-                prices = pd.Series(df['latest'].values, index=pd.to_datetime(df['date']))
-                prices.name = benchmark
             else:
                 logger.error(f"未知的指数类型: {index_type}")
                 return pd.Series(dtype=float)
             
-            logger.info(f"akshare 获取 {symbol} 数据成功，共 {len(prices)} 条记录")
+            if not prices.empty:
+                logger.info(f"akshare 获取 {symbol} 数据成功，共 {len(prices)} 条记录")
             return prices
             
         except Exception as e:
             logger.error(f"akshare 获取数据失败 {symbol}: {e}")
             return pd.Series(dtype=float)
+    
+    def _fetch_a_index(self, ak, symbol: str, start_date: datetime, end_date: datetime, benchmark: str) -> pd.Series:
+        """获取 A 股指数数据"""
+        start_str = start_date.strftime('%Y%m%d')
+        end_str = end_date.strftime('%Y%m%d')
+        logger.info(f"从 akshare 获取 A股指数 {symbol}: {start_str} - {end_str}")
+        
+        df = ak.index_zh_a_hist(symbol=symbol, period='daily', start_date=start_str, end_date=end_str)
+        
+        if df.empty:
+            return pd.Series(dtype=float)
+        
+        prices = pd.Series(df['收盘'].values, index=pd.to_datetime(df['日期']))
+        prices.name = benchmark
+        return prices
+    
+    def _fetch_hk_index(self, ak, symbol: str, start_date: datetime, end_date: datetime, benchmark: str) -> pd.Series:
+        """获取港股指数数据"""
+        logger.info(f"从 akshare 获取港股指数 {symbol}")
+        
+        df = ak.stock_hk_index_daily_em(symbol=symbol)
+        
+        if df.empty:
+            return pd.Series(dtype=float)
+        
+        # 过滤日期范围
+        start_str = start_date.strftime('%Y-%m-%d')
+        end_str = end_date.strftime('%Y-%m-%d')
+        df = df[(df['date'] >= start_str) & (df['date'] <= end_str)]
+        
+        if df.empty:
+            return pd.Series(dtype=float)
+        
+        prices = pd.Series(df['latest'].values, index=pd.to_datetime(df['date']))
+        prices.name = benchmark
+        return prices
+    
+    def _fetch_us_index(self, ak, symbol: str, start_date: datetime, end_date: datetime, benchmark: str) -> pd.Series:
+        """获取美股指数数据 (新浪财经)"""
+        logger.info(f"从 akshare 获取美股指数 {symbol}")
+        
+        # 使用新浪财经美股指数历史数据接口
+        df = ak.index_us_stock_sina(symbol=symbol)
+        
+        if df.empty:
+            return pd.Series(dtype=float)
+        
+        # 转换日期格式并过滤
+        df['date'] = pd.to_datetime(df['date'])
+        df = df[(df['date'] >= pd.Timestamp(start_date)) & (df['date'] <= pd.Timestamp(end_date))]
+        
+        if df.empty:
+            return pd.Series(dtype=float)
+        
+        prices = pd.Series(df['close'].values, index=df['date'])
+        prices.name = benchmark
+        return prices
     
     def fetch_benchmark_data(
         self, 
@@ -165,11 +183,8 @@ class BenchmarkService:
             logger.debug(f"使用缓存数据: {cache_key}")
             return self._cache[cache_key]
         
-        # 根据数据源选择获取方式
-        if self._is_akshare_benchmark(benchmark):
-            prices = self._fetch_akshare_data(benchmark, start_date, end_date)
-        else:
-            prices = self._fetch_yfinance_data(benchmark, start_date, end_date)
+        # 使用 akshare 获取数据
+        prices = self._fetch_akshare_data(benchmark, start_date, end_date)
         
         if not prices.empty:
             # 更新缓存
@@ -177,52 +192,6 @@ class BenchmarkService:
             self._cache_time[cache_key] = datetime.now()
         
         return prices
-    
-    def _fetch_yfinance_data(
-        self,
-        benchmark: str,
-        start_date: datetime,
-        end_date: datetime
-    ) -> pd.Series:
-        """
-        使用 yfinance 获取基准指数数据
-        
-        :param benchmark: 基准代码
-        :param start_date: 开始日期
-        :param end_date: 结束日期
-        :return: 收盘价 Series
-        """
-        symbol = config.BENCHMARK_SYMBOLS.get(benchmark.lower())
-        if not symbol:
-            return pd.Series(dtype=float)
-        
-        try:
-            logger.info(f"从 yfinance 获取 {symbol} 数据: {start_date.date()} - {end_date.date()}")
-            
-            # 扩展开始日期以确保有足够的历史数据
-            fetch_start = start_date - timedelta(days=10)
-            
-            ticker = yf.Ticker(symbol)
-            df = ticker.history(start=fetch_start, end=end_date + timedelta(days=1))
-            
-            if df.empty:
-                logger.warning(f"未获取到 {symbol} 的数据")
-                return pd.Series(dtype=float)
-            
-            # 提取收盘价
-            prices = df['Close']
-            prices.index = pd.to_datetime(prices.index).tz_localize(None)
-            prices.name = benchmark
-            
-            # 过滤到请求的日期范围
-            prices = prices[prices.index >= pd.Timestamp(start_date)]
-            
-            logger.info(f"获取 {symbol} 数据成功，共 {len(prices)} 条记录")
-            return prices
-            
-        except Exception as e:
-            logger.error(f"获取基准指数数据失败 {symbol}: {e}")
-            return pd.Series(dtype=float)
     
     def get_benchmark_returns(
         self, 
@@ -300,8 +269,7 @@ class BenchmarkService:
         :return: {benchmark_code: returns_series}
         """
         results = {}
-        # 合并两个数据源的基准
-        all_benchmarks = list(config.BENCHMARK_SYMBOLS.keys()) + list(config.AKSHARE_BENCHMARKS.keys())
+        all_benchmarks = list(config.AKSHARE_BENCHMARKS.keys())
         for benchmark in all_benchmarks:
             returns = self.align_with_portfolio(portfolio_returns, benchmark)
             if not returns.empty:
