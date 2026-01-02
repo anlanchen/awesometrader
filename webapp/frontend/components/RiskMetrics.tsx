@@ -67,7 +67,7 @@ export const RiskMetrics: React.FC<RiskMetricsProps> = ({
   const chartSeries = useMemo((): ChartSeriesData[] => {
     if (!returnsData || !drawdownData || !equityData) return [];
 
-    const minWindow = 5; // 最小滚动窗口
+    const minWindow = 7; // 最小滚动窗口（至少需要7天数据）
     const preferredWindow = 20; // 首选滚动窗口大小
 
     // 构建日期到数据的映射
@@ -185,6 +185,8 @@ export const RiskMetrics: React.FC<RiskMetricsProps> = ({
   const formatN = (v: number | undefined, d = 2) => v !== undefined ? v.toFixed(d) : '-';
 
   const hasChartData = chartSeries.length > 0;
+  const isDataLoaded = returnsData && drawdownData && equityData;
+  const hasInsufficientData = isDataLoaded && !hasChartData;
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 items-start w-full">
@@ -238,7 +240,7 @@ export const RiskMetrics: React.FC<RiskMetricsProps> = ({
           </>
         ) : (
           <div className="h-96 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400">
-            Loading chart data...
+            {hasInsufficientData ? '至少需要7天数据才能显示图表' : 'Loading chart data...'}
           </div>
         )}
       </div>
