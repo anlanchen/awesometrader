@@ -726,28 +726,10 @@ class AnalyticsService:
             if not bench_returns.empty:
                 # 计算累计收益曲线
                 bench_cumulative = (1 + bench_returns).cumprod()
-                
-                # 获取 portfolio 的第一个日期（equity 的第一天）
-                portfolio_first_date = equity.index[0]
-                
-                # 检查 benchmark 数据的第一个日期是否与 portfolio 第一天相同
-                bench_first_date = bench_cumulative.index[0]
-                
-                if bench_first_date > portfolio_first_date:
-                    # benchmark 数据起点晚于 portfolio，需要在开头添加初始点（值=1.0）
-                    benchmark_data = [
-                        {"date": portfolio_first_date.strftime("%Y-%m-%d"), "value": 1.0}
-                    ]
-                    benchmark_data.extend([
-                        {"date": d.strftime("%Y-%m-%d"), "value": float(v)}
-                        for d, v in bench_cumulative.items()
-                    ])
-                else:
-                    # 起点对齐，直接使用
-                    benchmark_data = [
-                        {"date": d.strftime("%Y-%m-%d"), "value": float(v)}
-                        for d, v in bench_cumulative.items()
-                    ]
+                benchmark_data = [
+                    {"date": d.strftime("%Y-%m-%d"), "value": float(v)}
+                    for d, v in bench_cumulative.items()
+                ]
         
         return {
             "period": period,
