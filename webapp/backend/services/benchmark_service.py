@@ -243,6 +243,14 @@ class BenchmarkService:
         
         benchmark_returns = self.get_benchmark_returns(benchmark, start_date, end_date)
         
+        # 如果短时间范围获取不到数据，尝试扩展时间范围
+        # 这是因为股市在节假日休市，短时间段可能没有交易数据
+        if benchmark_returns.empty:
+            # 向前扩展30天尝试获取数据
+            extended_start = start_date - timedelta(days=30)
+            logger.debug(f"扩展时间范围获取基准数据: {extended_start} - {end_date}")
+            benchmark_returns = self.get_benchmark_returns(benchmark, extended_start, end_date)
+        
         if benchmark_returns.empty:
             logger.warning(f"无法获取基准 {benchmark} 的收益率数据")
             return pd.Series(dtype=float)

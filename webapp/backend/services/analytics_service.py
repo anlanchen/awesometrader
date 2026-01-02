@@ -25,6 +25,25 @@ class AnalyticsService:
         self.data_loader = data_loader
         self.benchmark_service = benchmark_service
     
+    @staticmethod
+    def _safe_float(value, default=0.0) -> float:
+        """
+        安全转换为 float，处理 nan 和 inf 值
+        
+        :param value: 输入值
+        :param default: 当值无效时的默认值
+        :return: 安全的 float 值
+        """
+        if value is None:
+            return default
+        try:
+            f = float(value)
+            if np.isnan(f) or np.isinf(f):
+                return default
+            return f
+        except (ValueError, TypeError):
+            return default
+    
     # ==================== 收益指标 ====================
     
     def calculate_return_metrics(self, returns: pd.Series) -> Dict[str, Any]:
@@ -98,23 +117,23 @@ class AnalyticsService:
                 mtd_return = qs.stats.comp(mtd_returns)
             
             return {
-                "cumulative_return": float(cumulative_return) if not np.isnan(cumulative_return) else 0.0,
-                "annualized_return": float(annualized_return) if not np.isnan(annualized_return) else 0.0,
-                "ytd_return": float(ytd_return) if ytd_return is not None and not np.isnan(ytd_return) else None,
-                "mtd_return": float(mtd_return) if mtd_return is not None and not np.isnan(mtd_return) else None,
-                "daily_return_mean": float(daily_mean) if not np.isnan(daily_mean) else 0.0,
-                "daily_return_std": float(daily_std) if not np.isnan(daily_std) else 0.0,
-                "best_day": float(best_day) if not np.isnan(best_day) else 0.0,
-                "worst_day": float(worst_day) if not np.isnan(worst_day) else 0.0,
-                "win_rate": float(win_rate) if not np.isnan(win_rate) else 0.0,
-                "avg_win": float(avg_win) if not np.isnan(avg_win) else 0.0,
-                "avg_loss": float(avg_loss) if not np.isnan(avg_loss) else 0.0,
-                "profit_factor": float(profit_factor) if not np.isnan(profit_factor) else 0.0,
-                "payoff_ratio": float(payoff_ratio) if not np.isnan(payoff_ratio) else 0.0,
-                "expectancy": float(expectancy) if not np.isnan(expectancy) else 0.0,
-                "geometric_mean": float(geometric_mean) if not np.isnan(geometric_mean) else 0.0,
-                "expected_monthly": float(expected_monthly) if not np.isnan(expected_monthly) else 0.0,
-                "expected_yearly": float(expected_yearly) if not np.isnan(expected_yearly) else 0.0,
+                "cumulative_return": self._safe_float(cumulative_return),
+                "annualized_return": self._safe_float(annualized_return),
+                "ytd_return": self._safe_float(ytd_return) if ytd_return is not None else None,
+                "mtd_return": self._safe_float(mtd_return) if mtd_return is not None else None,
+                "daily_return_mean": self._safe_float(daily_mean),
+                "daily_return_std": self._safe_float(daily_std),
+                "best_day": self._safe_float(best_day),
+                "worst_day": self._safe_float(worst_day),
+                "win_rate": self._safe_float(win_rate),
+                "avg_win": self._safe_float(avg_win),
+                "avg_loss": self._safe_float(avg_loss),
+                "profit_factor": self._safe_float(profit_factor),
+                "payoff_ratio": self._safe_float(payoff_ratio),
+                "expectancy": self._safe_float(expectancy),
+                "geometric_mean": self._safe_float(geometric_mean),
+                "expected_monthly": self._safe_float(expected_monthly),
+                "expected_yearly": self._safe_float(expected_yearly),
             }
             
         except Exception as e:
@@ -229,25 +248,25 @@ class AnalyticsService:
             upi = annualized_return / ulcer_index if ulcer_index > 0 else 0
             
             return {
-                "volatility": float(volatility) if not np.isnan(volatility) else 0.0,
-                "max_drawdown": float(max_drawdown) if not np.isnan(max_drawdown) else 0.0,
+                "volatility": self._safe_float(volatility),
+                "max_drawdown": self._safe_float(max_drawdown),
                 "max_drawdown_duration": max_dd_duration,
-                "sharpe_ratio": float(sharpe) if not np.isnan(sharpe) else 0.0,
-                "sortino_ratio": float(sortino) if not np.isnan(sortino) else 0.0,
-                "calmar_ratio": float(calmar) if not np.isnan(calmar) else 0.0,
-                "var_95": float(var_95) if not np.isnan(var_95) else 0.0,
-                "cvar_95": float(cvar_95) if not np.isnan(cvar_95) else 0.0,
-                "skewness": float(skewness) if not np.isnan(skewness) else 0.0,
-                "kurtosis": float(kurtosis) if not np.isnan(kurtosis) else 0.0,
-                "ulcer_index": float(ulcer_index) if not np.isnan(ulcer_index) else 0.0,
-                "tail_ratio": float(tail_ratio) if not np.isnan(tail_ratio) else 0.0,
-                "kelly_criterion": float(kelly_criterion) if not np.isnan(kelly_criterion) else 0.0,
-                "omega_ratio": float(omega_ratio) if not np.isnan(omega_ratio) else 0.0,
-                "gain_to_pain_ratio": float(gain_to_pain) if not np.isnan(gain_to_pain) else 0.0,
-                "common_sense_ratio": float(common_sense_ratio) if not np.isnan(common_sense_ratio) else 0.0,
-                "recovery_factor": float(recovery_factor) if not np.isnan(recovery_factor) else 0.0,
-                "risk_return_ratio": float(risk_return_ratio) if not np.isnan(risk_return_ratio) else 0.0,
-                "ulcer_performance_index": float(upi) if not np.isnan(upi) else 0.0,
+                "sharpe_ratio": self._safe_float(sharpe),
+                "sortino_ratio": self._safe_float(sortino),
+                "calmar_ratio": self._safe_float(calmar),
+                "var_95": self._safe_float(var_95),
+                "cvar_95": self._safe_float(cvar_95),
+                "skewness": self._safe_float(skewness),
+                "kurtosis": self._safe_float(kurtosis),
+                "ulcer_index": self._safe_float(ulcer_index),
+                "tail_ratio": self._safe_float(tail_ratio),
+                "kelly_criterion": self._safe_float(kelly_criterion),
+                "omega_ratio": self._safe_float(omega_ratio),
+                "gain_to_pain_ratio": self._safe_float(gain_to_pain),
+                "common_sense_ratio": self._safe_float(common_sense_ratio),
+                "recovery_factor": self._safe_float(recovery_factor),
+                "risk_return_ratio": self._safe_float(risk_return_ratio),
+                "ulcer_performance_index": self._safe_float(upi),
             }
             
         except Exception as e:
@@ -400,54 +419,51 @@ class AnalyticsService:
             up_capture = self._calculate_capture_ratio(portfolio_returns, benchmark_returns, up=True)
             down_capture = self._calculate_capture_ratio(portfolio_returns, benchmark_returns, up=False)
             
-            def safe_float(v, default=0.0):
-                return float(v) if not np.isnan(v) else default
-            
             return {
                 "benchmark_name": self.benchmark_service.get_benchmark_name(benchmark),
                 # 收益指标
-                "benchmark_return": safe_float(benchmark_cumulative),
-                "benchmark_cagr": safe_float(benchmark_annualized),
-                "benchmark_daily_mean": safe_float(benchmark_daily_mean),
-                "benchmark_daily_std": safe_float(benchmark_daily_std),
-                "benchmark_best_day": safe_float(benchmark_best_day),
-                "benchmark_worst_day": safe_float(benchmark_worst_day),
-                "benchmark_win_rate": safe_float(benchmark_win_rate),
-                "benchmark_avg_win": safe_float(benchmark_avg_win),
-                "benchmark_avg_loss": safe_float(benchmark_avg_loss),
-                "benchmark_profit_factor": safe_float(benchmark_profit_factor),
-                "benchmark_payoff_ratio": safe_float(benchmark_payoff_ratio),
-                "benchmark_expectancy": safe_float(benchmark_expectancy),
-                "benchmark_geometric_mean": safe_float(benchmark_geometric_mean),
-                "benchmark_expected_monthly": safe_float(benchmark_expected_monthly),
-                "benchmark_expected_yearly": safe_float(benchmark_expected_yearly),
+                "benchmark_return": self._safe_float(benchmark_cumulative),
+                "benchmark_cagr": self._safe_float(benchmark_annualized),
+                "benchmark_daily_mean": self._safe_float(benchmark_daily_mean),
+                "benchmark_daily_std": self._safe_float(benchmark_daily_std),
+                "benchmark_best_day": self._safe_float(benchmark_best_day),
+                "benchmark_worst_day": self._safe_float(benchmark_worst_day),
+                "benchmark_win_rate": self._safe_float(benchmark_win_rate),
+                "benchmark_avg_win": self._safe_float(benchmark_avg_win),
+                "benchmark_avg_loss": self._safe_float(benchmark_avg_loss),
+                "benchmark_profit_factor": self._safe_float(benchmark_profit_factor),
+                "benchmark_payoff_ratio": self._safe_float(benchmark_payoff_ratio),
+                "benchmark_expectancy": self._safe_float(benchmark_expectancy),
+                "benchmark_geometric_mean": self._safe_float(benchmark_geometric_mean),
+                "benchmark_expected_monthly": self._safe_float(benchmark_expected_monthly),
+                "benchmark_expected_yearly": self._safe_float(benchmark_expected_yearly),
                 # 风险指标
-                "benchmark_volatility": safe_float(benchmark_volatility),
-                "benchmark_max_drawdown": safe_float(benchmark_max_drawdown),
-                "benchmark_sharpe": safe_float(benchmark_sharpe),
-                "benchmark_sortino": safe_float(benchmark_sortino),
-                "benchmark_calmar": safe_float(benchmark_calmar),
-                "benchmark_var_95": safe_float(benchmark_var_95),
-                "benchmark_cvar_95": safe_float(benchmark_cvar_95),
-                "benchmark_skewness": safe_float(benchmark_skewness),
-                "benchmark_kurtosis": safe_float(benchmark_kurtosis),
-                "benchmark_ulcer_index": safe_float(benchmark_ulcer_index),
-                "benchmark_tail_ratio": safe_float(benchmark_tail_ratio),
-                "benchmark_kelly_criterion": safe_float(benchmark_kelly),
-                "benchmark_omega_ratio": safe_float(benchmark_omega),
-                "benchmark_gain_to_pain_ratio": safe_float(benchmark_gain_to_pain),
-                "benchmark_common_sense_ratio": safe_float(benchmark_common_sense),
-                "benchmark_recovery_factor": safe_float(benchmark_recovery),
-                "benchmark_risk_return_ratio": safe_float(benchmark_risk_return),
-                "benchmark_ulcer_performance_index": safe_float(benchmark_upi),
+                "benchmark_volatility": self._safe_float(benchmark_volatility),
+                "benchmark_max_drawdown": self._safe_float(benchmark_max_drawdown),
+                "benchmark_sharpe": self._safe_float(benchmark_sharpe),
+                "benchmark_sortino": self._safe_float(benchmark_sortino),
+                "benchmark_calmar": self._safe_float(benchmark_calmar),
+                "benchmark_var_95": self._safe_float(benchmark_var_95),
+                "benchmark_cvar_95": self._safe_float(benchmark_cvar_95),
+                "benchmark_skewness": self._safe_float(benchmark_skewness),
+                "benchmark_kurtosis": self._safe_float(benchmark_kurtosis),
+                "benchmark_ulcer_index": self._safe_float(benchmark_ulcer_index),
+                "benchmark_tail_ratio": self._safe_float(benchmark_tail_ratio),
+                "benchmark_kelly_criterion": self._safe_float(benchmark_kelly),
+                "benchmark_omega_ratio": self._safe_float(benchmark_omega),
+                "benchmark_gain_to_pain_ratio": self._safe_float(benchmark_gain_to_pain),
+                "benchmark_common_sense_ratio": self._safe_float(benchmark_common_sense),
+                "benchmark_recovery_factor": self._safe_float(benchmark_recovery),
+                "benchmark_risk_return_ratio": self._safe_float(benchmark_risk_return),
+                "benchmark_ulcer_performance_index": self._safe_float(benchmark_upi),
                 # 对比指标
-                "alpha": safe_float(alpha),
-                "beta": safe_float(beta, 1.0),
-                "correlation": safe_float(correlation),
-                "information_ratio": safe_float(info_ratio),
-                "tracking_error": safe_float(tracking_error),
-                "up_capture": safe_float(up_capture, 1.0),
-                "down_capture": safe_float(down_capture, 1.0),
+                "alpha": self._safe_float(alpha),
+                "beta": self._safe_float(beta, 1.0),
+                "correlation": self._safe_float(correlation),
+                "information_ratio": self._safe_float(info_ratio),
+                "tracking_error": self._safe_float(tracking_error),
+                "up_capture": self._safe_float(up_capture, 1.0),
+                "down_capture": self._safe_float(down_capture, 1.0),
             }
             
         except Exception as e:
@@ -588,7 +604,7 @@ class AnalyticsService:
                     "start_date": parse_date(row['start']),
                     "end_date": parse_date(row['end']),
                     "recovery_date": parse_date(row['valley']),
-                    "drawdown": float(row['max drawdown']),
+                    "drawdown": self._safe_float(row['max drawdown']),
                     "duration": int(row['days']) if pd.notna(row['days']) else 0,
                     "recovery_days": None,  # quantstats 不直接提供
                 })
@@ -622,7 +638,7 @@ class AnalyticsService:
                 result.append({
                     "year": int(year),
                     "month": int(month),
-                    "return_value": float(value) if not np.isnan(value) else 0.0,
+                    "return_value": self._safe_float(value),
                 })
             
             return result
@@ -649,7 +665,7 @@ class AnalyticsService:
             result = []
             for year, value in yearly.items():
                 result.append({
-                    str(year): float(value) if not np.isnan(value) else 0.0,
+                    str(year): self._safe_float(value),
                 })
             
             return result
@@ -686,8 +702,8 @@ class AnalyticsService:
             "start_date": start_date,
             "end_date": end_date,
             "trading_days": len(returns),
-            "initial_value": float(equity.iloc[0]),
-            "final_value": float(equity.iloc[-1]),
+            "initial_value": self._safe_float(equity.iloc[0]),
+            "final_value": self._safe_float(equity.iloc[-1]),
             "returns": return_metrics,
             "risk": risk_metrics,
             "benchmark": benchmark_metrics,
@@ -714,7 +730,7 @@ class AnalyticsService:
         portfolio_normalized = equity / equity.iloc[0]
         
         portfolio_data = [
-            {"date": d.strftime("%Y-%m-%d"), "value": float(v)}
+            {"date": d.strftime("%Y-%m-%d"), "value": self._safe_float(v, 1.0)}
             for d, v in portfolio_normalized.items()
         ]
         
@@ -727,7 +743,7 @@ class AnalyticsService:
                 # 计算累计收益曲线
                 bench_cumulative = (1 + bench_returns).cumprod()
                 benchmark_data = [
-                    {"date": d.strftime("%Y-%m-%d"), "value": float(v)}
+                    {"date": d.strftime("%Y-%m-%d"), "value": self._safe_float(v, 1.0)}
                     for d, v in bench_cumulative.items()
                 ]
         

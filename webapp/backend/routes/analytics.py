@@ -7,8 +7,22 @@
 
 from typing import Optional, Annotated
 
+import numpy as np
 from fastapi import APIRouter, Query, HTTPException, Depends
 from loguru import logger
+
+
+def safe_float(value, default=0.0) -> float:
+    """安全转换为 float，处理 nan 和 inf 值"""
+    if value is None:
+        return default
+    try:
+        f = float(value)
+        if np.isnan(f) or np.isinf(f):
+            return default
+        return f
+    except (ValueError, TypeError):
+        return default
 
 from ..services.auth_service import get_current_user, User
 from ..models.schemas import (
@@ -115,7 +129,7 @@ async def get_returns(
         metrics = analytics_service.calculate_return_metrics(returns)
         
         daily_returns = [
-            {"date": d.strftime("%Y-%m-%d"), "return": float(v)}
+            {"date": d.strftime("%Y-%m-%d"), "return": safe_float(v)}
             for d, v in returns.items()
         ]
         
@@ -177,7 +191,7 @@ async def get_benchmark(
         if returns.empty:
             raise HTTPException(status_code=404, detail="没有找到数据")
         
-        portfolio_return = float((1 + returns).prod() - 1)
+        portfolio_return = safe_float((1 + returns).prod() - 1)
         
         if benchmark:
             benchmark = validate_benchmark(benchmark)
@@ -220,14 +234,14 @@ async def get_drawdown(
         drawdown_series = analytics_service.calculate_drawdown_series(returns)
         
         # 当前回撤
-        current_drawdown = float(drawdown_series.iloc[-1]) if not drawdown_series.empty else 0.0
+        current_drawdown = safe_float(drawdown_series.iloc[-1]) if not drawdown_series.empty else 0.0
         
         # 最大回撤
-        max_drawdown = float(drawdown_series.min()) if not drawdown_series.empty else 0.0
+        max_drawdown = safe_float(drawdown_series.min()) if not drawdown_series.empty else 0.0
         
         # 回撤序列数据
         dd_data = [
-            {"date": d.strftime("%Y-%m-%d"), "drawdown": float(v)}
+            {"date": d.strftime("%Y-%m-%d"), "drawdown": safe_float(v)}
             for d, v in drawdown_series.items()
         ]
         
