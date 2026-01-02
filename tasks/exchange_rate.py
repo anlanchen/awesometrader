@@ -77,9 +77,14 @@ class ExchangeRateService:
             for _, row in df.iterrows():
                 currency_pair = str(row['货币对']).strip()
                 # 使用买报价和卖报价的中间价
-                buy_price = float(row['买报价'])
-                sell_price = float(row['卖报价'])
-                mid_price = (buy_price + sell_price) / 2
+                buy_price = row['买报价']
+                sell_price = row['卖报价']
+
+                # 检查是否为有效数值（排除 NaN）
+                if pd.isna(buy_price) or pd.isna(sell_price):
+                    continue
+
+                mid_price = (float(buy_price) + float(sell_price)) / 2
 
                 if currency_pair == 'USD/CNY':
                     usd_rate = mid_price
@@ -88,6 +93,11 @@ class ExchangeRateService:
 
                 if usd_rate is not None and hkd_rate is not None:
                     break
+
+            # 如果没有获取到任何有效汇率，返回 None 以触发备用数据源
+            if usd_rate is None and hkd_rate is None:
+                logger.warning("未能从外汇即期报价获取有效汇率数据")
+                return None
 
             # 使用默认值填充缺失的汇率
             if usd_rate is None:
@@ -267,12 +277,19 @@ class ExchangeRateService:
                 logger.warning("未能获取汇率信息")
                 return
 
+            # 根据是否使用了默认值判断数据来源
+            is_default = (rates == self.DEFAULT_RATES)
+            if is_default:
+                source = "默认值"
+            else:
+                source = "外汇管理局/中国外汇交易中心"
+
             # 格式化输出
             print("=" * 50)
-            print("人民币外汇即期报价")
+            print("人民币汇率查询")
             print("=" * 50)
             print(f"查询时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"数据来源: 中国外汇交易中心")
+            print(f"数据来源: {source}")
             print("-" * 50)
             print(f"  1 USD = {rates['USD']:.4f} CNH")
             print(f"  1 HKD = {rates['HKD']:.4f} CNH")
