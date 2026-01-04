@@ -3,20 +3,20 @@
 """
 期权定价工具模块
 
-使用 py_vollib 库进行期权定价，支持：
+使用 Black-Scholes 模型进行期权定价，支持：
 - Black-Scholes 期权定价
 - Greeks 计算 (Delta, Gamma, Theta, Vega, Rho)
 - 隐含波动率计算
 """
 
 import re
+import math
 from datetime import date
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
-from py_vollib.black_scholes import black_scholes as bs_price
-from py_vollib.black_scholes.greeks.analytical import delta, gamma, theta, vega, rho
-from py_vollib.black_scholes.implied_volatility import implied_volatility
+from scipy.stats import norm
+from scipy.optimize import brentq
 
 
 @dataclass
@@ -72,6 +72,30 @@ def is_option_symbol(symbol: str) -> bool:
     return parse_option_symbol(symbol) is not None
 
 
+def _d1(S: float, K: float, T: float, r: float, sigma: float) -> float:
+    """计算 d1"""
+    return (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
+
+
+def _d2(S: float, K: float, T: float, r: float, sigma: float) -> float:
+    """计算 d2"""
+    return _d1(S, K, T, r, sigma) - sigma * math.sqrt(T)
+
+
+def _bs_call_price(S: float, K: float, T: float, r: float, sigma: float) -> float:
+    """Black-Scholes Call 期权价格"""
+    d1 = _d1(S, K, T, r, sigma)
+    d2 = _d2(S, K, T, r, sigma)
+    return S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
+
+
+def _bs_put_price(S: float, K: float, T: float, r: float, sigma: float) -> float:
+    """Black-Scholes Put 期权价格"""
+    d1 = _d1(S, K, T, r, sigma)
+    d2 = _d2(S, K, T, r, sigma)
+    return K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+
+
 def black_scholes_price(
     S: float,
     K: float,
@@ -81,7 +105,7 @@ def black_scholes_price(
     option_type: str
 ) -> Dict[str, float]:
     """
-    使用 py_vollib 计算期权价格和Greeks
+    计算期权价格和Greeks
     
     Args:
         S: 标的资产现价
@@ -92,15 +116,39 @@ def black_scholes_price(
         option_type: 'c'/'C' Call, 'p'/'P' Put
     """
     flag = option_type.lower()
+    d1 = _d1(S, K, T, r, sigma)
+    d2 = _d2(S, K, T, r, sigma)
+    sqrt_T = math.sqrt(T)
     
-    # 使用 float() 确保返回 Python 原生类型（而非 numpy 类型），以支持 JSON 序列化
+    # 期权价格
+    if flag == 'c':
+        price = _bs_call_price(S, K, T, r, sigma)
+        delta_val = norm.cdf(d1)
+        theta_val = (
+            -S * norm.pdf(d1) * sigma / (2 * sqrt_T)
+            - r * K * math.exp(-r * T) * norm.cdf(d2)
+        )
+        rho_val = K * T * math.exp(-r * T) * norm.cdf(d2)
+    else:
+        price = _bs_put_price(S, K, T, r, sigma)
+        delta_val = norm.cdf(d1) - 1
+        theta_val = (
+            -S * norm.pdf(d1) * sigma / (2 * sqrt_T)
+            + r * K * math.exp(-r * T) * norm.cdf(-d2)
+        )
+        rho_val = -K * T * math.exp(-r * T) * norm.cdf(-d2)
+    
+    # Gamma 和 Vega 对 Call 和 Put 相同
+    gamma_val = norm.pdf(d1) / (S * sigma * sqrt_T)
+    vega_val = S * norm.pdf(d1) * sqrt_T
+    
     return {
-        'price': float(bs_price(flag, S, K, T, r, sigma)),
-        'delta': float(delta(flag, S, K, T, r, sigma)),
-        'gamma': float(gamma(flag, S, K, T, r, sigma)),
-        'theta': float(theta(flag, S, K, T, r, sigma) / 365),
-        'vega': float(vega(flag, S, K, T, r, sigma) / 100),
-        'rho': float(rho(flag, S, K, T, r, sigma) / 100),
+        'price': float(price),
+        'delta': float(delta_val),
+        'gamma': float(gamma_val),
+        'theta': float(theta_val / 365),  # 每日 theta
+        'vega': float(vega_val / 100),    # 每 1% 波动率变化
+        'rho': float(rho_val / 100),      # 每 1% 利率变化
     }
 
 
@@ -113,9 +161,19 @@ def calculate_implied_volatility(
     option_type: str
 ) -> Optional[float]:
     """计算隐含波动率"""
+    flag = option_type.lower()
+    
+    def objective(sigma):
+        if flag == 'c':
+            return _bs_call_price(S, K, T, r, sigma) - price
+        else:
+            return _bs_put_price(S, K, T, r, sigma) - price
+    
     try:
-        return implied_volatility(price, S, K, T, r, option_type.lower())
-    except Exception:
+        # 使用 Brent 方法求解隐含波动率，搜索范围 0.01% ~ 500%
+        iv = brentq(objective, 0.0001, 5.0)
+        return float(iv)
+    except (ValueError, RuntimeError):
         return None
 
 
