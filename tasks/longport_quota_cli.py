@@ -246,7 +246,7 @@ def main():
     # 配置日志
     logger.remove()
     logger.add(sys.stdout, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}", level="INFO")
-    logger.add("logs/longport_quota_cli_{time:YYYY-MM-DD}.log", rotation="1 day", retention="30 days")
+    logger.add("logs/longport_quota_cli_{time:YYYY-MM-DD}.log", rotation="1 day", retention="7 days")
 
     parser = argparse.ArgumentParser(description="AwesomeTrader 数据收集器 CLI")
     subparsers = parser.add_subparsers(dest="command", help="可用命令")

@@ -683,7 +683,7 @@ def main():
     logger.add(
         "logs/longport_trade_cli_{time:YYYY-MM-DD}.log",
         rotation="1 day",
-        retention="30 days",
+        retention="7 days",
         encoding="utf-8"
     )
     

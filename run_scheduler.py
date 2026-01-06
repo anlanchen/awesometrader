@@ -17,7 +17,7 @@ def main():
     # Configure logging
     logger.remove() # Remove default handler
     logger.add(sys.stdout, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}", level="INFO")
-    logger.add("logs/scheduler_{time:YYYY-MM-DD}.log", rotation="1 day", retention="30 days", 
+    logger.add("logs/scheduler_{time:YYYY-MM-DD}.log", rotation="1 day", retention="7 days", 
                format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}")
 
     logger.info("Starting AwesomeTrader Task Scheduler...")

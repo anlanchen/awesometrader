@@ -87,7 +87,7 @@ python tasks/longport_trade_cli.py account-metrics --currency CNH --initial-capi
 
 - 文件名格式: `longport_trade_cli_YYYY-MM-DD.log`
 - 日志轮转: 每天一个新文件
-- 保留时间: 30天
+- 保留时间: 7天
 
 ## 环境配置
 

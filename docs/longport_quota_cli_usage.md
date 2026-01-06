@@ -147,7 +147,7 @@ AAPL.US,苹果
 
 - 文件名格式: `longport_quota_cli_YYYY-MM-DD.log`
 - 日志轮转: 每天一个新文件
-- 保留时间: 30天
+- 保留时间: 7天
 
 ## 环境配置
 
