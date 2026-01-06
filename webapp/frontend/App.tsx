@@ -54,12 +54,13 @@ export default function App() {
     setError(null);
     try {
       // 并行请求所有数据
-      const [overviewData, equityData, monthlyData, fullEquity, fullMonthly, returns, drawdown] = await Promise.all([
+      const [overviewData, equityData, monthlyData, fullEquity, fullMonthly, fullOverview, returns, drawdown] = await Promise.all([
         api.getOverview(period, benchmark),
         api.getEquityCurve(period, benchmark),
         api.getMonthly(period),
         api.getEquityCurve('all', benchmark),
         api.getMonthly('all'),
+        api.getOverview('all', benchmark),  // 获取全部数据的概览，用于获取正确的初始值
         api.getReturns(period),
         api.getDrawdown(period),
       ]);
@@ -70,7 +71,7 @@ export default function App() {
 
       setFullEquityData(fullEquity);
       setFullMonthlyData(fullMonthly);
-      setFullInitialValue(overviewData.initial_value);
+      setFullInitialValue(fullOverview.initial_value);  // 使用全部数据的初始值
       
       setReturnsData(returns);
       setDrawdownData(drawdown);
