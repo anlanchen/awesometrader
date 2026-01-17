@@ -60,6 +60,7 @@ class ExchangeRateService:
         Returns:
             Dict[str, float]: 汇率字典，key 为币种代码，value 为 1 单位该币种 = 多少人民币
             例如：{'USD': 7.10, 'HKD': 0.91, 'CNH': 1.0}
+            如果 USD 汇率获取失败，返回 None 以触发备用数据源
         """
         try:
             logger.info("正在从中国外汇交易中心获取人民币外汇即期报价...")
@@ -94,18 +95,15 @@ class ExchangeRateService:
                 if usd_rate is not None and hkd_rate is not None:
                     break
 
-            # 如果没有获取到任何有效汇率，返回 None 以触发备用数据源
-            if usd_rate is None and hkd_rate is None:
-                logger.warning("未能从外汇即期报价获取有效汇率数据")
+            # USD 和 HKD 都是核心货币，任一缺失则返回 None 以触发备用数据源
+            if usd_rate is None or hkd_rate is None:
+                missing = []
+                if usd_rate is None:
+                    missing.append("USD/CNY")
+                if hkd_rate is None:
+                    missing.append("HKD/CNY")
+                logger.warning(f"未能从外汇即期报价获取 {', '.join(missing)} 汇率，尝试备用数据源")
                 return None
-
-            # 使用默认值填充缺失的汇率
-            if usd_rate is None:
-                logger.warning(f"未找到 USD/CNY 汇率，使用默认值 {self.DEFAULT_RATES['USD']}")
-                usd_rate = self.DEFAULT_RATES['USD']
-            if hkd_rate is None:
-                logger.warning(f"未找到 HKD/CNY 汇率，使用默认值 {self.DEFAULT_RATES['HKD']}")
-                hkd_rate = self.DEFAULT_RATES['HKD']
 
             rates = {
                 'USD': usd_rate,
