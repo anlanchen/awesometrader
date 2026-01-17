@@ -35,8 +35,8 @@ class ExchangeRateService:
 
     # 默认汇率（当 API 调用失败时使用）
     DEFAULT_RATES = {
-        'USD': 7.10,  # 1 USD = 7.10 CNH
-        'HKD': 0.91,  # 1 HKD = 0.91 CNH
+        'USD': 7.00,  # 1 USD = 7.00 CNH
+        'HKD': 0.90,  # 1 HKD = 0.90 CNH
         'CNH': 1.0,
     }
 
@@ -59,7 +59,7 @@ class ExchangeRateService:
 
         Returns:
             Dict[str, float]: 汇率字典，key 为币种代码，value 为 1 单位该币种 = 多少人民币
-            例如：{'USD': 7.10, 'HKD': 0.91, 'CNH': 1.0}
+            例如：{'USD': 7.00, 'HKD': 0.90, 'CNH': 1.0}
             如果 USD 汇率获取失败，返回 None 以触发备用数据源
         """
         try:
@@ -126,7 +126,7 @@ class ExchangeRateService:
 
         Returns:
             Dict[str, float]: 汇率字典，key 为币种代码，value 为 1 单位该币种 = 多少人民币
-            例如：{'USD': 7.10, 'HKD': 0.91, 'CNH': 1.0}
+            例如：{'USD': 7.00, 'HKD': 0.90, 'CNH': 1.0}
         """
         try:
             logger.info("正在从外汇管理局获取人民币汇率中间价...")

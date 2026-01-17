@@ -203,7 +203,7 @@ class LongPortTradeCLI:
     def calculate_account_metrics(self, currency: str = 'CNH', adjustments: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
         """计算账户各项指标
 
-        总资产净值 = 所有币种现金余额 + 所有市场持仓市值 + 调整金额，并根据当前选择币种折算展示
+        总资产净值 = 长桥返回的 net_assets + 调整金额，并根据当前选择币种折算展示
 
         Args:
             currency: 目标币种 (USD, HKD, CNH)，默认为 CNH
@@ -224,8 +224,9 @@ class LongPortTradeCLI:
             # 获取汇率（以 CNH 为基准）
             exchange_rates = self.exchange_rate_service.get_exchange_rates()
 
-            # 计算所有币种现金余额（折算到目标币种）
+            # 计算所有币种现金余额和净资产（折算到目标币种）
             total_cash_balance = 0.0
+            total_net_assets = 0.0  # 长桥返回的净资产（不含调整）
             # 将balances对象转换为可序列化的字典格式
             balances_data = []
             for balance in balances:
@@ -262,6 +263,12 @@ class LongPortTradeCLI:
                 # 折算到目标币种
                 converted_cash = self.exchange_rate_service.convert_currency(original_cash, original_currency, currency)
                 total_cash_balance += converted_cash
+                
+                # 获取长桥返回的净资产并折算
+                net_assets_value = float(getattr(balance, 'net_assets', 0) or 0)
+                converted_net_assets = self.exchange_rate_service.convert_currency(net_assets_value, original_currency, currency)
+                total_net_assets += converted_net_assets
+                logger.info(f"币种 {original_currency} 净资产: {net_assets_value:,.2f} -> {currency} {converted_net_assets:,.2f}")
             
             # 计算持仓信息
             total_market_value = 0.0  # 持仓总市值（折算后）
@@ -481,8 +488,9 @@ class LongPortTradeCLI:
                     'converted_amount': converted_adjustment
                 })
 
-            # 计算总资产净值（所有持仓市值 + 所有币种现金 + 调整金额，均已折算）
-            total_assets = total_market_value + total_cash_balance + total_adjustment
+            # 计算总资产净值（长桥返回的 net_assets + 调整金额）
+            total_assets = total_net_assets + total_adjustment
+            logger.info(f"总资产计算: 长桥净资产 {total_net_assets:,.2f} + 调整 {total_adjustment:,.2f} = {total_assets:,.2f} {currency}")
             
             # 计算杠杆率
             leverage_ratio = (total_market_value / total_assets) if total_assets > 0 else 0.0
@@ -490,6 +498,7 @@ class LongPortTradeCLI:
             return {
                 'currency': currency,
                 'total_assets': total_assets,
+                'total_net_assets': total_net_assets,
                 'total_market_value': total_market_value,
                 'total_cash_balance': total_cash_balance,
                 'total_adjustment': total_adjustment,
@@ -544,10 +553,11 @@ class LongPortTradeCLI:
             output_lines.append("【账户概览】")
             output_lines.append("-" * 80)
             output_lines.append(f"  总资产净值:     {currency_symbol}{metrics['total_assets']:,.2f}")
+            output_lines.append(f"  ├ 长桥净资产:   {currency_symbol}{metrics['total_net_assets']:,.2f}")
+            if metrics.get('adjustment_details'):
+                output_lines.append(f"  └ 资金调整:     {currency_symbol}{metrics['total_adjustment']:,.2f}")
             output_lines.append(f"  现金余额合计:   {currency_symbol}{metrics['total_cash_balance']:,.2f}")
             output_lines.append(f"  持仓总市值:     {currency_symbol}{metrics['total_market_value']:,.2f}")
-            if metrics.get('adjustment_details'):
-                output_lines.append(f"  资金调整合计:   {currency_symbol}{metrics['total_adjustment']:,.2f}")
             output_lines.append(f"  杠杆率:         {metrics['leverage_ratio']:.2%}")
             output_lines.append("")
 
