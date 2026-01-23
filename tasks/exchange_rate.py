@@ -42,7 +42,7 @@ class ExchangeRateService:
 
     def __init__(self):
         """初始化汇率服务"""
-        # 汇率缓存: {'USD': 7.10, 'HKD': 0.91, 'CNH': 1.0}
+        # 汇率缓存: {'USD': 7.00, 'HKD': 0.90, 'CNH': 1.0}
         self._rates: Optional[Dict[str, float]] = None
         # 缓存时间戳
         self._cache_time: Optional[datetime] = None

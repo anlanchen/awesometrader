@@ -268,7 +268,6 @@ class LongPortTradeCLI:
                 net_assets_value = float(getattr(balance, 'net_assets', 0) or 0)
                 converted_net_assets = self.exchange_rate_service.convert_currency(net_assets_value, original_currency, currency)
                 total_net_assets += converted_net_assets
-                logger.info(f"币种 {original_currency} 净资产: {net_assets_value:,.2f} -> {currency} {converted_net_assets:,.2f}")
             
             # 计算持仓信息
             total_market_value = 0.0  # 持仓总市值（折算后）
