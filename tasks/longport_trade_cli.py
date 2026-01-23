@@ -46,7 +46,7 @@ class LongPortTradeCLI:
     def _get_output_filename(self, command: str, extension: str = 'txt') -> str:
         """生成输出文件名"""
         timestamp = datetime.now().strftime('%Y%m%d')
-        filename = f"{command}_{timestamp}.{extension}"
+        filename = f"{timestamp}.{extension}"
         return os.path.join(self.output_dir, filename)
     
     def _save_to_file(self, content: str, filepath: str) -> None:
