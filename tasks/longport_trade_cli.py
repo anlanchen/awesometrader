@@ -118,7 +118,12 @@ class LongPortTradeCLI:
             quotes_dict = self.quote_api.get_stock_quote(symbols)
             quote_data = {}
             for symbol, quote in quotes_dict.items():
-                quote_data[symbol] = float(quote.last_done)
+                # 取盘前/盘后/夜盘/常规中时间戳最新的价格
+                latest_ts, latest_price = quote.timestamp, quote.last_done
+                for session in (quote.pre_market_quote, quote.post_market_quote, quote.overnight_quote):
+                    if session and session.timestamp > latest_ts:
+                        latest_ts, latest_price = session.timestamp, session.last_done
+                quote_data[symbol] = float(latest_price)
             return quote_data
         except Exception as e:
             logger.error(f"批量获取股票报价失败: {e}")

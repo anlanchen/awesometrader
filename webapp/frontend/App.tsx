@@ -32,7 +32,7 @@ import { LoginPage } from './components/LoginPage';
 
 export default function App() {
   const { isAuthenticated, isLoading: authLoading, user, login, logout, error: authError } = useAuth();
-  const [period, setPeriod] = useState<string>('all');
+  const [period, setPeriod] = useState<string>('ytd');
   const [benchmark, setBenchmark] = useState<string>('sp500');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
