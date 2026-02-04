@@ -69,7 +69,7 @@ def validate_period(period: str) -> str:
 
 def validate_benchmark(benchmark: str) -> str:
     """验证基准参数"""
-    valid_benchmarks = list(config.AKSHARE_BENCHMARKS.keys())
+    valid_benchmarks = list(config.LONGPORT_BENCHMARKS.keys())
     if benchmark not in valid_benchmarks:
         raise HTTPException(
             status_code=400,
@@ -338,9 +338,9 @@ async def get_periods():
 
 @router.get("/benchmarks", summary="获取可用的基准指数")
 async def get_benchmarks():
-    """获取所有可用的基准指数选项（数据源：akshare）"""
+    """获取所有可用的基准指数选项（数据源：LongPort）"""
     benchmarks = []
-    for code, info in config.AKSHARE_BENCHMARKS.items():
+    for code, info in config.LONGPORT_BENCHMARKS.items():
         benchmarks.append({
             "code": code,
             "name": info["name"],

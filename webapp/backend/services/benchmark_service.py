@@ -2,13 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-基准指数服务 - 使用 akshare 获取基准指数数据
+基准指数服务 - 使用长桥(LongPort) API 获取基准指数数据
 """
 
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 from loguru import logger
+
+from longport.openapi import Period, AdjustType
 
 from ..config import config
 
@@ -22,6 +24,15 @@ class BenchmarkService:
         self._cache: Dict[str, pd.Series] = {}
         self._cache_time: Dict[str, datetime] = {}
         self._cache_ttl = timedelta(hours=1)  # 缓存1小时
+        # 延迟初始化长桥 API
+        self._longport_api = None
+        
+    def _get_longport_api(self):
+        """获取长桥 API 实例（延迟初始化）"""
+        if self._longport_api is None:
+            from awesometrader import LongPortQuotaAPI
+            self._longport_api = LongPortQuotaAPI()
+        return self._longport_api
         
     def _is_cache_valid(self, cache_key: str) -> bool:
         """检查缓存是否有效"""
@@ -38,129 +49,73 @@ class BenchmarkService:
         """
         benchmark_lower = benchmark.lower()
         
-        if benchmark_lower in config.AKSHARE_BENCHMARKS:
-            return config.AKSHARE_BENCHMARKS[benchmark_lower]["symbol"]
+        if benchmark_lower in config.LONGPORT_BENCHMARKS:
+            return config.LONGPORT_BENCHMARKS[benchmark_lower]["symbol"]
         
-        all_benchmarks = list(config.AKSHARE_BENCHMARKS.keys())
+        all_benchmarks = list(config.LONGPORT_BENCHMARKS.keys())
         raise ValueError(f"未知的基准指数: {benchmark}，可选: {all_benchmarks}")
     
     def get_benchmark_name(self, benchmark: str) -> str:
         """获取基准指数的中文名称"""
         benchmark_lower = benchmark.lower()
         
-        if benchmark_lower in config.AKSHARE_BENCHMARKS:
-            return config.AKSHARE_BENCHMARKS[benchmark_lower]["name"]
+        if benchmark_lower in config.LONGPORT_BENCHMARKS:
+            return config.LONGPORT_BENCHMARKS[benchmark_lower]["name"]
         
         return benchmark
     
-    def _fetch_akshare_data(
+    def _fetch_longport_data(
         self,
         benchmark: str,
         start_date: datetime,
         end_date: datetime
     ) -> pd.Series:
         """
-        使用 akshare 获取基准指数数据
+        使用长桥(LongPort) API 获取基准指数数据
         
         :param benchmark: 基准代码
         :param start_date: 开始日期
         :param end_date: 结束日期
         :return: 收盘价 Series
         """
-        try:
-            import akshare as ak
-        except ImportError:
-            logger.error("akshare 未安装，请运行: pip install akshare")
-            return pd.Series(dtype=float)
-        
-        benchmark_config = config.AKSHARE_BENCHMARKS.get(benchmark.lower())
+        benchmark_config = config.LONGPORT_BENCHMARKS.get(benchmark.lower())
         if not benchmark_config:
+            logger.error(f"未知的基准指数: {benchmark}")
             return pd.Series(dtype=float)
         
         symbol = benchmark_config["symbol"]
-        index_type = benchmark_config["type"]
         
         try:
-            if index_type == "a_index":
-                # A股指数
-                prices = self._fetch_a_index(ak, symbol, start_date, end_date, benchmark)
-                
-            elif index_type == "hk_index":
-                # 港股指数
-                prices = self._fetch_hk_index(ak, symbol, start_date, end_date, benchmark)
-                
-            elif index_type == "us_index":
-                # 美股指数 (新浪财经)
-                prices = self._fetch_us_index(ak, symbol, start_date, end_date, benchmark)
-                
-            else:
-                logger.error(f"未知的指数类型: {index_type}")
+            logger.info(f"从长桥 API 获取指数 {symbol}: {start_date.date()} - {end_date.date()}")
+            
+            # 获取长桥 API 实例
+            api = self._get_longport_api()
+            
+            # 使用日线数据，不复权
+            df = api.get_stock_history(
+                stock_code=symbol,
+                period=Period.Day,
+                adjust_type=AdjustType.NoAdjust,
+                start_date=start_date,
+                end_date=end_date
+            )
+            
+            if df.empty:
+                logger.warning(f"长桥 API 未获取到 {symbol} 的数据")
                 return pd.Series(dtype=float)
             
-            if not prices.empty:
-                logger.info(f"akshare 获取 {symbol} 数据成功，共 {len(prices)} 条记录")
+            # 提取收盘价，转换索引为日期格式
+            prices = df['Close'].copy()
+            # 将时间戳索引转换为日期（去掉时间部分）
+            prices.index = pd.to_datetime(prices.index).normalize()
+            prices.name = benchmark
+            
+            logger.info(f"长桥 API 获取 {symbol} 数据成功，共 {len(prices)} 条记录")
             return prices
             
         except Exception as e:
-            logger.error(f"akshare 获取数据失败 {symbol}: {e}")
+            logger.error(f"长桥 API 获取数据失败 {symbol}: {e}")
             return pd.Series(dtype=float)
-    
-    def _fetch_a_index(self, ak, symbol: str, start_date: datetime, end_date: datetime, benchmark: str) -> pd.Series:
-        """获取 A 股指数数据"""
-        start_str = start_date.strftime('%Y%m%d')
-        end_str = end_date.strftime('%Y%m%d')
-        logger.info(f"从 akshare 获取 A股指数 {symbol}: {start_str} - {end_str}")
-        
-        df = ak.index_zh_a_hist(symbol=symbol, period='daily', start_date=start_str, end_date=end_str)
-        
-        if df.empty:
-            return pd.Series(dtype=float)
-        
-        prices = pd.Series(df['收盘'].values, index=pd.to_datetime(df['日期']))
-        prices.name = benchmark
-        return prices
-    
-    def _fetch_hk_index(self, ak, symbol: str, start_date: datetime, end_date: datetime, benchmark: str) -> pd.Series:
-        """获取港股指数数据"""
-        logger.info(f"从 akshare 获取港股指数 {symbol}")
-        
-        df = ak.stock_hk_index_daily_em(symbol=symbol)
-        
-        if df.empty:
-            return pd.Series(dtype=float)
-        
-        # 过滤日期范围
-        start_str = start_date.strftime('%Y-%m-%d')
-        end_str = end_date.strftime('%Y-%m-%d')
-        df = df[(df['date'] >= start_str) & (df['date'] <= end_str)]
-        
-        if df.empty:
-            return pd.Series(dtype=float)
-        
-        prices = pd.Series(df['latest'].values, index=pd.to_datetime(df['date']))
-        prices.name = benchmark
-        return prices
-    
-    def _fetch_us_index(self, ak, symbol: str, start_date: datetime, end_date: datetime, benchmark: str) -> pd.Series:
-        """获取美股指数数据 (新浪财经)"""
-        logger.info(f"从 akshare 获取美股指数 {symbol}")
-        
-        # 使用新浪财经美股指数历史数据接口
-        df = ak.index_us_stock_sina(symbol=symbol)
-        
-        if df.empty:
-            return pd.Series(dtype=float)
-        
-        # 转换日期格式并过滤
-        df['date'] = pd.to_datetime(df['date'])
-        df = df[(df['date'] >= pd.Timestamp(start_date)) & (df['date'] <= pd.Timestamp(end_date))]
-        
-        if df.empty:
-            return pd.Series(dtype=float)
-        
-        prices = pd.Series(df['close'].values, index=df['date'])
-        prices.name = benchmark
-        return prices
     
     def fetch_benchmark_data(
         self, 
@@ -183,8 +138,8 @@ class BenchmarkService:
             logger.debug(f"使用缓存数据: {cache_key}")
             return self._cache[cache_key]
         
-        # 使用 akshare 获取数据
-        prices = self._fetch_akshare_data(benchmark, start_date, end_date)
+        # 使用长桥 API 获取数据
+        prices = self._fetch_longport_data(benchmark, start_date, end_date)
         
         if not prices.empty:
             # 更新缓存
@@ -277,7 +232,7 @@ class BenchmarkService:
         :return: {benchmark_code: returns_series}
         """
         results = {}
-        all_benchmarks = list(config.AKSHARE_BENCHMARKS.keys())
+        all_benchmarks = list(config.LONGPORT_BENCHMARKS.keys())
         for benchmark in all_benchmarks:
             returns = self.align_with_portfolio(portfolio_returns, benchmark)
             if not returns.empty:

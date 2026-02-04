@@ -536,7 +536,7 @@ class AnalyticsService:
         :return: 所有基准的对比指标列表
         """
         results = []
-        for benchmark in config.AKSHARE_BENCHMARKS.keys():
+        for benchmark in config.LONGPORT_BENCHMARKS.keys():
             comparison = self.calculate_benchmark_comparison(returns, benchmark)
             if comparison:
                 results.append(comparison)

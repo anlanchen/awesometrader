@@ -27,16 +27,17 @@ class Config:
     API_TITLE = "AwesomeTrader Analytics API"
     API_VERSION = "1.0.0"
     
-    # 基准指数配置 - 全部使用 akshare 数据源
-    AKSHARE_BENCHMARKS: Dict[str, Dict] = {
-        # 美股指数 (新浪财经)
-        "sp500": {"symbol": ".INX", "type": "us_index", "name": "标普500"},
-        "nasdaq100": {"symbol": ".NDX", "type": "us_index", "name": "纳斯达克100"},
+    # 基准指数配置 - 使用长桥(LongPort) API 数据源
+    # 代码格式: ticker.region (US/HK/SH/SZ)
+    LONGPORT_BENCHMARKS: Dict[str, Dict] = {
+        # 美股指数
+        "sp500": {"symbol": "SPY.US", "name": "标普500"},  # 使用 SPY ETF 作为 S&P 500 代理
+        "nasdaq100": {"symbol": "QQQ.US", "name": "纳斯达克100"},  # 使用 QQQ ETF 作为 Nasdaq 100 代理
         # A股指数
-        "csi300": {"symbol": "000300", "type": "a_index", "name": "沪深300"},
-        "a500": {"symbol": "000510", "type": "a_index", "name": "中证A500"},
+        "csi300": {"symbol": "000300.SH", "name": "沪深300"},
+        "a500": {"symbol": "000510.SH", "name": "中证A500"},
         # 港股指数
-        "hstech": {"symbol": "HSTECH", "type": "hk_index", "name": "恒生科技"},
+        "hstech": {"symbol": "HSTECH.HK", "name": "恒生科技"},
     }
     
     # 时间周期配置 (period_code -> days, None 表示特殊处理)
