@@ -104,10 +104,12 @@ class BenchmarkService:
                 logger.warning(f"长桥 API 未获取到 {symbol} 的数据")
                 return pd.Series(dtype=float)
             
-            # 提取收盘价，转换索引为日期格式
-            prices = df['Close'].copy()
-            # 将时间戳索引转换为日期（去掉时间部分）
+            # 提取收盘价，转换为 float（LongPort 返回 Decimal 类型）
+            prices = df['Close'].astype(float).copy()
+            # 将时间戳索引转换为日期（去掉时间部分和时区信息）
             prices.index = pd.to_datetime(prices.index).normalize()
+            if prices.index.tz is not None:
+                prices.index = prices.index.tz_localize(None)
             prices.name = benchmark
             
             logger.info(f"长桥 API 获取 {symbol} 数据成功，共 {len(prices)} 条记录")

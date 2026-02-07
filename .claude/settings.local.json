@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:open.longbridge.com)"
+      "WebFetch(domain:open.longbridge.com)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(curl:*)",
+      "Bash(bash:*)",
+      "Bash(python3:*)",
+      "Bash(open:*)"
     ],
     "deny": [],
     "ask": []
