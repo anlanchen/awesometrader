@@ -371,9 +371,8 @@ class LongPortQuotaAPI:
                         'Turnover': candle.turnover
                     })
                 
-                # 创建DataFrame，将 timestamp 转为 datetime（LongPort API 返回秒级时间戳）
+                # 创建DataFrame
                 df_chunk = pd.DataFrame(data_list)
-                df_chunk['timestamp'] = pd.to_datetime(df_chunk['timestamp'], unit='s')
                 df_chunk.set_index('timestamp', inplace=True)
                 df_chunk.sort_index(inplace=True)
                 all_data_frames.append(df_chunk)
@@ -381,13 +380,13 @@ class LongPortQuotaAPI:
                 logger.info(f"获取数据块: {len(df_chunk)} 条记录，时间范围: {df_chunk.index[0]} 到 {df_chunk.index[-1]}")
                 
                 # 如果已经覆盖了请求的开始时间，说明已经获取完毕
-                earliest_ts = df_chunk.index[0]
-                if earliest_ts <= start_date or earliest_ts >= current_end_date:
+                earliest_timestamp = df_chunk.index[0]
+                if earliest_timestamp <= start_date or earliest_timestamp >= current_end_date:
                     logger.info(f"已到达请求的开始时间，停止继续请求")
                     break
                 
-                # 更新下次请求的结束时间为当前数据块的最早时间（需为 datetime 以支持 .date()）
-                current_end_date = pd.Timestamp(earliest_ts).to_pydatetime()
+                # 更新下次请求的结束时间为当前数据块的最早时间
+                current_end_date = earliest_timestamp
                 logger.info(f"需要继续获取更早的数据，下次请求截止时间: {current_end_date}")
             
             # 合并所有数据块
